@@ -558,7 +558,18 @@
       // Storage
       { data: { id: 's3_raw', label: '📦 AWS S3\nRaw Data', layer: 'consumer' }, classes: 'consumer' },
       { data: { id: 's3_processed', label: '📦 AWS S3\nProcessed Data', layer: 'consumer' }, classes: 'consumer' },
-      { data: { id: 'redshift', label: '🏢 AWS Redshift\nData Warehouse\n(Single Source of Truth)', layer: 'consumer' }, classes: 'consumer' },
+      // Redshift — 拆成 schema/domain
+      { data: { id: 'rs_canvas', label: '🏢 Redshift\ndatamart_canvas\nSession/Canvas 使用時長', layer: 'redshift' }, classes: 'redshift' },
+      { data: { id: 'rs_instance', label: '🏢 Redshift\ndatamart_instance\n裝置/Instance 統計', layer: 'redshift' }, classes: 'redshift' },
+      { data: { id: 'rs_users', label: '🏢 Redshift\nusers / entity\n帳號/Entity/登入', layer: 'redshift' }, classes: 'redshift' },
+      { data: { id: 'rs_subscription', label: '🏢 Redshift\ndatamart_subscription\n訂閱/授權', layer: 'redshift' }, classes: 'redshift' },
+      { data: { id: 'rs_device', label: '🏢 Redshift\ndevice_manager\n裝置資料/MAC/使用記錄', layer: 'redshift' }, classes: 'redshift' },
+      { data: { id: 'rs_teamwork', label: '🏢 Redshift\nteamwork_prod\nBoard/Project/Event', layer: 'redshift' }, classes: 'redshift' },
+      { data: { id: 'rs_oc', label: '🏢 Redshift\ndatamart_oc\n原創內容使用', layer: 'redshift' }, classes: 'redshift' },
+      { data: { id: 'rs_companion', label: '🏢 Redshift\ndatamart_companion\nCompanion 活動', layer: 'redshift' }, classes: 'redshift' },
+      { data: { id: 'rs_edla', label: '🏢 Redshift\ndatamart_edla\nEDLA Session', layer: 'redshift' }, classes: 'redshift' },
+      { data: { id: 'rs_sales', label: '🏢 Redshift\nsalesforce / sales\n銷售/CRM', layer: 'redshift' }, classes: 'redshift' },
+      { data: { id: 'rs_other', label: '🏢 Redshift\npublic / mvb\n其他共用表', layer: 'redshift' }, classes: 'redshift' },
       { data: { id: 'savvy_pg', label: '🐘 Savvy PostgreSQL\nmyviewboard-product-orm\n⚠️ 產品 Write Endpoint', layer: 'consumer' }, classes: 'consumer' },
       // Consumers
       { data: { id: 'powerbi', label: '📊 Power BI\n8 workspaces\n164 reports', layer: 'consumer' }, classes: 'consumer' },
@@ -615,62 +626,81 @@
       { data: { source: 'vs_migration', target: 'dbt_users', label: '等完成' }, classes: 'depend' },
       // Application layer
       { data: { source: 'ei_migration', target: 'alert_list', label: '等 28 表完成' }, classes: 'depend' },
-      // ── Layer 1 Ingestion → S3 → Redshift（忠實呈現實際寫入路徑）──
-      // dbrix 寫 S3 raw（不直接寫 Redshift）
+      // ── 資料流向：DAG → 具體 Redshift schema ──
+      // dbrix → S3 Raw → EMR → S3 Processed
       { data: { source: 'dbrix', target: 's3_raw' }, classes: 'thick' },
       { data: { source: 's3_raw', target: 'emr' }, classes: 'thick' },
-      // appinsight 寫 S3 再 COPY 到 Redshift
-      { data: { source: 'appinsight', target: 'redshift' } },
-      // Product PG 系列 → S3 → Redshift
-      { data: { source: 'entity_acct', target: 'redshift' } },
-      { data: { source: 'vs_migration', target: 'redshift' } },
-      { data: { source: 'instance_rel', target: 'redshift' } },
-      { data: { source: 'instance_android', target: 'redshift' } },
-      { data: { source: 'device_rel', target: 'redshift' } },
-      { data: { source: 'subscription_dag', target: 'redshift' } },
-      { data: { source: 'account_rel', target: 'redshift' } },
-      { data: { source: 'common_update', target: 'redshift' } },
-      { data: { source: 'vs_update', target: 'redshift' } },
-      { data: { source: 'msp_dag', target: 'redshift' } },
-      { data: { source: 'email_log_dag', target: 'redshift' } },
-      // 其他 Source → Redshift
-      { data: { source: 'teamwork_dag', target: 'redshift' } },
-      { data: { source: 'salesforce_dag', target: 'redshift' } },
-      { data: { source: 'email_campaign_dag', target: 'redshift' } },
-      { data: { source: 'community_dag', target: 'redshift' } },
-      { data: { source: 'oracle_dag', target: 'redshift' } },
-      { data: { source: 'pbi_dag', target: 'redshift' } },
-      // EMR 寫 S3 processed 再到 Redshift
       { data: { source: 'emr', target: 's3_processed' }, classes: 'thick' },
-      { data: { source: 's3_processed', target: 'redshift' }, classes: 'thick' },
-      // Session/事件 → Redshift
-      { data: { source: 'esi', target: 'redshift' } },
-      { data: { source: 'esi_v3', target: 'redshift' } },
-      { data: { source: 'escw', target: 'redshift' } },
-      { data: { source: 'esc', target: 'redshift' } },
-      { data: { source: 'oc', target: 'redshift' } },
-      { data: { source: 'mvbcom', target: 'redshift' } },
-      { data: { source: 'insight_log', target: 'redshift' } },
-      // DBT/Transform → Redshift
-      { data: { source: 'dbt_inst', target: 'redshift' } },
-      { data: { source: 'dbt_users', target: 'redshift' } },
-      { data: { source: 'sales_bench', target: 'redshift' } },
-      { data: { source: 'tags', target: 'redshift' } },
-      { data: { source: 'user_tag', target: 'redshift' } },
-      { data: { source: 'canvas_hour', target: 'redshift' } },
-      { data: { source: 'alert_cond', target: 'redshift' } },
-      // ── Redshift → 下游 ──
-      { data: { source: 'redshift', target: 'powerbi' }, classes: 'thick' },
-      { data: { source: 'redshift', target: 'ei_migration' } },
-      // ── ei_migration → Savvy PG（不是寫 Redshift）──
+      // Session DAG → 對應 schema
+      { data: { source: 'esi', target: 'rs_canvas' } },
+      { data: { source: 'esi_v3', target: 'rs_canvas' } },
+      { data: { source: 'escw', target: 'rs_canvas' } },
+      { data: { source: 'esc', target: 'rs_companion' } },
+      { data: { source: 'oc', target: 'rs_oc' } },
+      { data: { source: 'mvbcom', target: 'rs_other' } },
+      { data: { source: 'insight_log', target: 'rs_other' } },
+      // EMR processed → 對應 schema
+      { data: { source: 's3_processed', target: 'rs_canvas' }, classes: 'thick' },
+      { data: { source: 's3_processed', target: 'rs_edla' } },
+      { data: { source: 's3_processed', target: 'rs_teamwork' } },
+      { data: { source: 's3_processed', target: 'rs_other' } },
+      // Ingestion → 對應 schema
+      { data: { source: 'entity_acct', target: 'rs_users' } },
+      { data: { source: 'vs_migration', target: 'rs_users' } },
+      { data: { source: 'account_rel', target: 'rs_users' } },
+      { data: { source: 'instance_rel', target: 'rs_instance' } },
+      { data: { source: 'instance_android', target: 'rs_instance' } },
+      { data: { source: 'device_rel', target: 'rs_device' } },
+      { data: { source: 'subscription_dag', target: 'rs_subscription' } },
+      { data: { source: 'teamwork_dag', target: 'rs_teamwork' } },
+      { data: { source: 'salesforce_dag', target: 'rs_sales' } },
+      { data: { source: 'email_campaign_dag', target: 'rs_other' } },
+      { data: { source: 'community_dag', target: 'rs_other' } },
+      { data: { source: 'oracle_dag', target: 'rs_other' } },
+      { data: { source: 'common_update', target: 'rs_other' } },
+      { data: { source: 'vs_update', target: 'rs_other' } },
+      { data: { source: 'msp_dag', target: 'rs_other' } },
+      { data: { source: 'email_log_dag', target: 'rs_other' } },
+      { data: { source: 'pbi_dag', target: 'rs_other' } },
+      { data: { source: 'appinsight', target: 'rs_other' } },
+      // DBT → 對應 schema
+      { data: { source: 'dbt_inst', target: 'rs_instance' } },
+      { data: { source: 'dbt_users', target: 'rs_users' } },
+      // Transform → 對應 schema
+      { data: { source: 'sales_bench', target: 'rs_sales' } },
+      { data: { source: 'tags', target: 'rs_users' } },
+      { data: { source: 'user_tag', target: 'rs_users' } },
+      { data: { source: 'canvas_hour', target: 'rs_canvas' } },
+      { data: { source: 'alert_cond', target: 'rs_other' } },
+      // ── Redshift schema → Power BI（全部 schema 都被 PBI 查）──
+      { data: { source: 'rs_canvas', target: 'powerbi' } },
+      { data: { source: 'rs_instance', target: 'powerbi' } },
+      { data: { source: 'rs_users', target: 'powerbi' } },
+      { data: { source: 'rs_subscription', target: 'powerbi' } },
+      { data: { source: 'rs_device', target: 'powerbi' } },
+      { data: { source: 'rs_teamwork', target: 'powerbi' } },
+      { data: { source: 'rs_oc', target: 'powerbi' } },
+      { data: { source: 'rs_companion', target: 'powerbi' } },
+      { data: { source: 'rs_sales', target: 'powerbi' } },
+      { data: { source: 'rs_other', target: 'powerbi' } },
+      // ── Redshift schema → entity_insight_migration（讀特定 schema）──
+      { data: { source: 'rs_canvas', target: 'ei_migration' } },
+      { data: { source: 'rs_instance', target: 'ei_migration' } },
+      { data: { source: 'rs_users', target: 'ei_migration' } },
+      { data: { source: 'rs_subscription', target: 'ei_migration' } },
+      { data: { source: 'rs_device', target: 'ei_migration' } },
+      { data: { source: 'rs_edla', target: 'ei_migration' } },
+      { data: { source: 'rs_teamwork', target: 'ei_migration' } },
+      { data: { source: 'rs_oc', target: 'ei_migration' } },
+      { data: { source: 'rs_companion', target: 'ei_migration' } },
+      // ── ei_migration / alert_list → Savvy PG ──
       { data: { source: 'ei_migration', target: 'savvy_pg' } },
       { data: { source: 'alert_list', target: 'savvy_pg' } },
       // ── Savvy PG → API ──
       { data: { source: 'savvy_pg', target: 'insight_api' } },
-      // ── 其他不寫 Redshift 的 DAG ──
+      // ── 不經過 Redshift 的 DAG ──
       { data: { source: 'oc_ai_tags', target: 's3_processed' } },
       { data: { source: 'oc_recommend', target: 'email_platform' } },
-      // ── Consumer 間 ──
       { data: { source: 'tags', target: 'email_platform' } },
     ];
 
@@ -686,6 +716,7 @@
       { selector: 'node.bigdata', style: { 'background-color': '#FFF2CC', 'border-color': '#D6B656', 'border-width': 2, 'color': '#5c4a00', 'width': '160', 'height': '70' }},
       { selector: 'node.session', style: { 'background-color': '#E1D5E7', 'border-color': '#9673A6', 'border-width': 2, 'color': '#4a2d5c' }},
       { selector: 'node.transform', style: { 'background-color': '#FFE6CC', 'border-color': '#D79B00', 'border-width': 2, 'color': '#5c3d00' }},
+      { selector: 'node.redshift', style: { 'background-color': '#D4E6F1', 'border-color': '#2E86C1', 'border-width': 2, 'color': '#1a3a5c', 'width': '180', 'height': '70', 'font-size': '10px', 'shape': 'barrel' }},
       { selector: 'node.consumer', style: { 'background-color': '#F8CECC', 'border-color': '#B85450', 'border-width': 2, 'color': '#5c1a17', 'width': '180', 'height': '70', 'font-size': '10px' }},
       { selector: 'node.hub', style: { 'border-color': '#FF0000', 'border-width': 4, 'font-weight': 'bold' }},
       { selector: 'node.unstable', style: { 'border-color': '#FF6600', 'border-width': 3, 'border-style': 'dashed' }},
@@ -1160,6 +1191,7 @@
       { color: "#FFF2CC", label: "大數據處理 Layer 2" },
       { color: "#E1D5E7", label: "Session 計算 Layer 3" },
       { color: "#FFE6CC", label: "DBT + 應用層 Layer 4-5" },
+      { color: "#D4E6F1", label: "Redshift Schema" },
       { color: "#F8CECC", label: "消費端" },
     ];
 
