@@ -742,13 +742,13 @@
     ];
 
     const LAYER_LABELS = {
-      source: '🟢 資料來源',
-      ingestion: '🔵 資料擷取',
-      bigdata: '🟠 大數據處理',
-      session: '🟣 Session/事件',
-      transform: '🟤 DBT/應用層',
-      redshift: '🏢 Redshift Schema',
-      consumer: '🔴 消費端/Storage',
+      source:    { name: '🟢 資料來源',        bg: '#D5E8D4', border: '#82B366', text: '#2d5016' },
+      ingestion: { name: '🔵 資料擷取',        bg: '#DAE8FC', border: '#6C8EBF', text: '#1a3a5c' },
+      bigdata:   { name: '🟠 大數據處理',      bg: '#FFF2CC', border: '#D6B656', text: '#5c4a00' },
+      session:   { name: '🟣 Session/事件',     bg: '#E1D5E7', border: '#9673A6', text: '#4a2d5c' },
+      transform: { name: '🟤 DBT/應用層',      bg: '#FFE6CC', border: '#D79B00', text: '#5c3d00' },
+      redshift:  { name: '🏢 Redshift Schema', bg: '#D4E6F1', border: '#2E86C1', text: '#1a3a5c' },
+      consumer:  { name: '🔴 消費端/Storage',  bg: '#F8CECC', border: '#B85450', text: '#5c1a17' },
     };
 
     function OverviewTab() {
@@ -802,7 +802,7 @@
         const groupByLayer = (nodes) => {
           const groups = {};
           nodes.forEach(n => {
-            const cls = n.classes().find(c => LAYER_LABELS[c]) || 'other';
+            const cls = n.classes().find(c => c in LAYER_LABELS) || 'other';
             if (!groups[cls]) groups[cls] = [];
             groups[cls].push({ id: n.data('id'), label: (n.data('label') || '').replace(/\n/g, ' ') });
           });
@@ -862,7 +862,7 @@
           const groupByLayer = (nodes) => {
             const groups = {};
             nodes.forEach(n => {
-              const cls = n.classes().find(c => LAYER_LABELS[c]) || 'other';
+              const cls = n.classes().find(c => c in LAYER_LABELS) || 'other';
               if (!groups[cls]) groups[cls] = [];
               groups[cls].push({ id: n.data('id'), label: (n.data('label') || '').replace(/\n/g, ' ') });
             });
@@ -977,23 +977,25 @@
                     <div style={{ padding: '8px 16px', background: '#E3F2FD', fontWeight: 600, fontSize: 12, color: '#1565C0', position: 'sticky', top: 52, zIndex: 1 }}>
                       🔵 上游（{selectedInfo.upstreamCount} 個節點）
                     </div>
-                    {Object.entries(selectedInfo.upstream).map(([layer, nodes]) => (
+                    {Object.entries(selectedInfo.upstream).map(([layer, nodes]) => {
+                      const lc = LAYER_LABELS[layer] || { name: layer, bg: '#f5f5f5', text: '#666' };
+                      return (
                       <div key={layer}>
-                        <div style={{ padding: '6px 16px', background: '#f5f5f5', fontSize: 11, fontWeight: 600, color: '#666' }}>
-                          {LAYER_LABELS[layer] || layer}
+                        <div style={{ padding: '6px 16px', background: lc.bg, fontSize: 11, fontWeight: 600, color: lc.text, borderLeft: `4px solid ${lc.border || lc.text}` }}>
+                          {lc.name}
                         </div>
                         {nodes.map(n => (
                           <div key={n.id}
                             onClick={() => { const cy = cyRef.current; if(cy) { cy.animate({ center: { eles: cy.getElementById(n.id) }, zoom: 1.5 }, { duration: 300 }); } }}
-                            style={{ padding: '6px 16px 6px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333' }}
-                            onMouseOver={e => e.currentTarget.style.background = '#E3F2FD'}
+                            style={{ padding: '6px 16px 6px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333', borderLeft: `4px solid ${lc.border || '#ddd'}` }}
+                            onMouseOver={e => e.currentTarget.style.background = lc.bg}
                             onMouseOut={e => e.currentTarget.style.background = 'white'}
                           >
                             {n.label}
                           </div>
                         ))}
                       </div>
-                    ))}
+                    ); })}
                   </div>
                 )}
 
@@ -1002,23 +1004,25 @@
                     <div style={{ padding: '8px 16px', background: '#FFF3E0', fontWeight: 600, fontSize: 12, color: '#E65100', position: 'sticky', top: 52, zIndex: 1 }}>
                       🟠 下游（{selectedInfo.downstreamCount} 個節點）
                     </div>
-                    {Object.entries(selectedInfo.downstream).map(([layer, nodes]) => (
+                    {Object.entries(selectedInfo.downstream).map(([layer, nodes]) => {
+                      const lc = LAYER_LABELS[layer] || { name: layer, bg: '#f5f5f5', text: '#666' };
+                      return (
                       <div key={layer}>
-                        <div style={{ padding: '6px 16px', background: '#f5f5f5', fontSize: 11, fontWeight: 600, color: '#666' }}>
-                          {LAYER_LABELS[layer] || layer}
+                        <div style={{ padding: '6px 16px', background: lc.bg, fontSize: 11, fontWeight: 600, color: lc.text, borderLeft: `4px solid ${lc.border || lc.text}` }}>
+                          {lc.name}
                         </div>
                         {nodes.map(n => (
                           <div key={n.id}
                             onClick={() => { const cy = cyRef.current; if(cy) { cy.animate({ center: { eles: cy.getElementById(n.id) }, zoom: 1.5 }, { duration: 300 }); } }}
-                            style={{ padding: '6px 16px 6px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333' }}
-                            onMouseOver={e => e.currentTarget.style.background = '#FFF3E0'}
+                            style={{ padding: '6px 16px 6px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333', borderLeft: `4px solid ${lc.border || '#ddd'}` }}
+                            onMouseOver={e => e.currentTarget.style.background = lc.bg}
                             onMouseOut={e => e.currentTarget.style.background = 'white'}
                           >
                             {n.label}
                           </div>
                         ))}
                       </div>
-                    ))}
+                    ); })}
                   </div>
                 )}
 
