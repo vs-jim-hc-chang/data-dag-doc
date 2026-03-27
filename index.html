@@ -556,11 +556,15 @@
       { data: { id: 'canvas_hour', label: 'active_canvas\n_hour (每月)', layer: 'transform' }, classes: 'transform' },
       { data: { id: 'oc_recommend', label: 'originals\n_recommend (每月)', layer: 'transform' }, classes: 'transform' },
       { data: { id: 'oc_ai_tags', label: 'originals\n_ai_tags', layer: 'transform' }, classes: 'transform' },
+      // Storage
+      { data: { id: 's3_raw', label: '📦 AWS S3\nRaw Data', layer: 'consumer' }, classes: 'consumer' },
+      { data: { id: 's3_processed', label: '📦 AWS S3\nProcessed Data', layer: 'consumer' }, classes: 'consumer' },
+      { data: { id: 'redshift', label: '🏢 AWS Redshift\nData Warehouse\n(Single Source of Truth)', layer: 'consumer' }, classes: 'consumer' },
+      { data: { id: 'savvy_pg', label: '🐘 Savvy PostgreSQL\nmyviewboard-product-orm\n⚠️ 產品 Write Endpoint', layer: 'consumer' }, classes: 'consumer' },
       // Consumers
-      { data: { id: 'redshift', label: 'Redshift\n(Data Warehouse)', layer: 'consumer' }, classes: 'consumer' },
-      { data: { id: 'powerbi', label: 'Power BI\n164 reports', layer: 'consumer' }, classes: 'consumer' },
-      { data: { id: 'insight_api', label: 'Entity Insight\nAPI (NestJS)', layer: 'consumer' }, classes: 'consumer' },
-      { data: { id: 'email_platform', label: 'Email Campaign\nPlatform', layer: 'consumer' }, classes: 'consumer' },
+      { data: { id: 'powerbi', label: '📊 Power BI\n8 workspaces\n164 reports', layer: 'consumer' }, classes: 'consumer' },
+      { data: { id: 'insight_api', label: '🌐 Entity Insight API\n(NestJS)', layer: 'consumer' }, classes: 'consumer' },
+      { data: { id: 'email_platform', label: '📧 Email Campaign\nPlatform', layer: 'consumer' }, classes: 'consumer' },
     ];
 
     const CY_EDGES = [
@@ -588,50 +592,59 @@
       { data: { source: 'pbi_api', target: 'pbi_dag' } },
       // ── Ingestion → BigData ──
       { data: { source: 'dbrix', target: 'emr' }, classes: 'thick' },
-      // ── Hub: appinsight_daily → 7 下游 ──
-      { data: { source: 'appinsight', target: 'esi' } },
-      { data: { source: 'appinsight', target: 'escw' } },
-      { data: { source: 'appinsight', target: 'esc' } },
-      { data: { source: 'appinsight', target: 'oc' } },
-      { data: { source: 'appinsight', target: 'device_rel' } },
-      { data: { source: 'appinsight', target: 'mvbcom' } },
-      { data: { source: 'appinsight', target: 'insight_log' } },
-      // ── Hub: emr_v2 → 4 下游 ──
-      { data: { source: 'emr', target: 'esi' }, classes: 'thick' },
-      { data: { source: 'emr', target: 'esi_v3' }, classes: 'thick' },
-      { data: { source: 'emr', target: 'oc' } },
-      { data: { source: 'emr', target: 'teamwork_dag' } },
-      // ── Instance chain ──
-      { data: { source: 'instance_android', target: 'instance_rel' } },
-      // ── → DBT Transform ──
-      { data: { source: 'instance_rel', target: 'dbt_inst' } },
-      { data: { source: 'esi', target: 'dbt_inst' } },
-      { data: { source: 'esi_v3', target: 'dbt_inst' } },
-      { data: { source: 'entity_acct', target: 'dbt_users' } },
-      { data: { source: 'vs_migration', target: 'dbt_users' } },
-      // ── Application layer ──
-      { data: { source: 'ei_migration', target: 'alert_list' } },
-      // ── 所有 DAG → Redshift（不簡化，全部畫）──
-      { data: { source: 'dbrix', target: 'redshift' } },
+      // ── 等待依賴（ExternalTaskSensor/Marker，用 depend class 標示）──
+      // appinsight_daily 完成後 → 7 個下游才開始
+      { data: { source: 'appinsight', target: 'esi', label: '等完成' }, classes: 'depend' },
+      { data: { source: 'appinsight', target: 'escw', label: '等完成' }, classes: 'depend' },
+      { data: { source: 'appinsight', target: 'esc', label: '等完成' }, classes: 'depend' },
+      { data: { source: 'appinsight', target: 'oc', label: '等完成' }, classes: 'depend' },
+      { data: { source: 'appinsight', target: 'device_rel', label: '等完成' }, classes: 'depend' },
+      { data: { source: 'appinsight', target: 'mvbcom', label: '等完成' }, classes: 'depend' },
+      { data: { source: 'appinsight', target: 'insight_log', label: '等完成' }, classes: 'depend' },
+      // emr_v2 完成後 → 4 個下游才開始
+      { data: { source: 'emr', target: 'esi', label: '等 EMR' }, classes: 'depend thick' },
+      { data: { source: 'emr', target: 'esi_v3', label: '等 EMR' }, classes: 'depend thick' },
+      { data: { source: 'emr', target: 'oc', label: '等 EMR' }, classes: 'depend' },
+      { data: { source: 'emr', target: 'teamwork_dag', label: '等 EMR' }, classes: 'depend' },
+      // instance chain
+      { data: { source: 'instance_android', target: 'instance_rel', label: '等完成' }, classes: 'depend' },
+      // → DBT Transform（等上游完成才跑 dbt）
+      { data: { source: 'instance_rel', target: 'dbt_inst', label: '等完成' }, classes: 'depend' },
+      { data: { source: 'esi', target: 'dbt_inst', label: '等完成' }, classes: 'depend' },
+      { data: { source: 'esi_v3', target: 'dbt_inst', label: '等完成' }, classes: 'depend' },
+      { data: { source: 'entity_acct', target: 'dbt_users', label: '等完成' }, classes: 'depend' },
+      { data: { source: 'vs_migration', target: 'dbt_users', label: '等完成' }, classes: 'depend' },
+      // Application layer
+      { data: { source: 'ei_migration', target: 'alert_list', label: '等 28 表完成' }, classes: 'depend' },
+      // ── Layer 1 Ingestion → S3 → Redshift（忠實呈現實際寫入路徑）──
+      // dbrix 寫 S3 raw（不直接寫 Redshift）
+      { data: { source: 'dbrix', target: 's3_raw' }, classes: 'thick' },
+      { data: { source: 's3_raw', target: 'emr' }, classes: 'thick' },
+      // appinsight 寫 S3 再 COPY 到 Redshift
       { data: { source: 'appinsight', target: 'redshift' } },
+      // Product PG 系列 → S3 → Redshift
       { data: { source: 'entity_acct', target: 'redshift' } },
       { data: { source: 'vs_migration', target: 'redshift' } },
       { data: { source: 'instance_rel', target: 'redshift' } },
       { data: { source: 'instance_android', target: 'redshift' } },
       { data: { source: 'device_rel', target: 'redshift' } },
       { data: { source: 'subscription_dag', target: 'redshift' } },
-      { data: { source: 'teamwork_dag', target: 'redshift' } },
-      { data: { source: 'salesforce_dag', target: 'redshift' } },
-      { data: { source: 'email_campaign_dag', target: 'redshift' } },
       { data: { source: 'account_rel', target: 'redshift' } },
-      { data: { source: 'community_dag', target: 'redshift' } },
-      { data: { source: 'oracle_dag', target: 'redshift' } },
       { data: { source: 'common_update', target: 'redshift' } },
       { data: { source: 'vs_update', target: 'redshift' } },
       { data: { source: 'msp_dag', target: 'redshift' } },
       { data: { source: 'email_log_dag', target: 'redshift' } },
+      // 其他 Source → Redshift
+      { data: { source: 'teamwork_dag', target: 'redshift' } },
+      { data: { source: 'salesforce_dag', target: 'redshift' } },
+      { data: { source: 'email_campaign_dag', target: 'redshift' } },
+      { data: { source: 'community_dag', target: 'redshift' } },
+      { data: { source: 'oracle_dag', target: 'redshift' } },
       { data: { source: 'pbi_dag', target: 'redshift' } },
-      { data: { source: 'emr', target: 'redshift' } },
+      // EMR 寫 S3 processed 再到 Redshift
+      { data: { source: 'emr', target: 's3_processed' }, classes: 'thick' },
+      { data: { source: 's3_processed', target: 'redshift' }, classes: 'thick' },
+      // Session/事件 → Redshift
       { data: { source: 'esi', target: 'redshift' } },
       { data: { source: 'esi_v3', target: 'redshift' } },
       { data: { source: 'escw', target: 'redshift' } },
@@ -639,6 +652,7 @@
       { data: { source: 'oc', target: 'redshift' } },
       { data: { source: 'mvbcom', target: 'redshift' } },
       { data: { source: 'insight_log', target: 'redshift' } },
+      // DBT/Transform → Redshift
       { data: { source: 'dbt_inst', target: 'redshift' } },
       { data: { source: 'dbt_users', target: 'redshift' } },
       { data: { source: 'sales_bench', target: 'redshift' } },
@@ -646,13 +660,18 @@
       { data: { source: 'user_tag', target: 'redshift' } },
       { data: { source: 'canvas_hour', target: 'redshift' } },
       { data: { source: 'alert_cond', target: 'redshift' } },
-      { data: { source: 'oc_ai_tags', target: 'redshift' } },
-      // ── Redshift → entity_insight_migration（從 RS 讀資料）──
-      { data: { source: 'redshift', target: 'ei_migration' } },
-      // ── Consumers ──
+      // ── Redshift → 下游 ──
       { data: { source: 'redshift', target: 'powerbi' }, classes: 'thick' },
-      { data: { source: 'ei_migration', target: 'insight_api' } },
-      { data: { source: 'alert_list', target: 'insight_api' } },
+      { data: { source: 'redshift', target: 'ei_migration' } },
+      // ── ei_migration → Savvy PG（不是寫 Redshift）──
+      { data: { source: 'ei_migration', target: 'savvy_pg' } },
+      { data: { source: 'alert_list', target: 'savvy_pg' } },
+      // ── Savvy PG → API ──
+      { data: { source: 'savvy_pg', target: 'insight_api' } },
+      // ── 其他不寫 Redshift 的 DAG ──
+      { data: { source: 'oc_ai_tags', target: 's3_processed' } },
+      { data: { source: 'oc_recommend', target: 'email_platform' } },
+      // ── Consumer 間 ──
       { data: { source: 'tags', target: 'email_platform' } },
     ];
 
@@ -668,7 +687,7 @@
       { selector: 'node.bigdata', style: { 'background-color': '#FFF2CC', 'border-color': '#D6B656', 'border-width': 2, 'color': '#5c4a00', 'width': '160', 'height': '70' }},
       { selector: 'node.session', style: { 'background-color': '#E1D5E7', 'border-color': '#9673A6', 'border-width': 2, 'color': '#4a2d5c' }},
       { selector: 'node.transform', style: { 'background-color': '#FFE6CC', 'border-color': '#D79B00', 'border-width': 2, 'color': '#5c3d00' }},
-      { selector: 'node.consumer', style: { 'background-color': '#F8CECC', 'border-color': '#B85450', 'border-width': 2, 'color': '#5c1a17', 'width': '150', 'height': '65' }},
+      { selector: 'node.consumer', style: { 'background-color': '#F8CECC', 'border-color': '#B85450', 'border-width': 2, 'color': '#5c1a17', 'width': '180', 'height': '70', 'font-size': '10px' }},
       { selector: 'node.hub', style: { 'border-color': '#FF0000', 'border-width': 4, 'font-weight': 'bold' }},
       { selector: 'node.unstable', style: { 'border-color': '#FF6600', 'border-width': 3, 'border-style': 'dashed' }},
       { selector: 'edge', style: {
@@ -677,6 +696,8 @@
         'arrow-scale': 0.8, 'opacity': 0.5,
       }},
       { selector: 'edge.thick', style: { 'width': 3, 'line-color': '#666', 'target-arrow-color': '#666', 'opacity': 0.8 }},
+      { selector: 'edge.depend', style: { 'line-color': '#E53935', 'target-arrow-color': '#E53935', 'line-style': 'dashed', 'width': 2, 'opacity': 0.8, 'label': 'data(label)', 'font-size': '8px', 'color': '#E53935', 'text-rotation': 'autorotate', 'text-margin-y': -8 }},
+      { selector: 'edge.depend.thick', style: { 'width': 3 }},
       { selector: 'node:active', style: { 'overlay-color': '#4fc3f7', 'overlay-opacity': 0.2 }},
       // Highlight styles
       { selector: 'node.dimmed', style: { 'opacity': 0.15 }},
@@ -846,6 +867,14 @@
             <div className="legend-item">
               <div className="legend-dot" style={{ background: "#DAE8FC", border: "3px dashed #FF6600" }} />
               <span>不穩定 DAG</span>
+            </div>
+            <div className="legend-item">
+              <div style={{ width: 30, height: 2, borderTop: '2px dashed #E53935' }} />
+              <span style={{ color: '#E53935' }}>等待依賴（要等上游跑完）</span>
+            </div>
+            <div className="legend-item">
+              <div style={{ width: 30, height: 2, background: '#aaa' }} />
+              <span>資料流向</span>
             </div>
           </div>
           <div ref={containerRef} style={{ width: '100%', height: '800px', background: '#fafafa', borderTop: '1px solid #eee' }} />
