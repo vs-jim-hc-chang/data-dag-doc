@@ -751,24 +751,83 @@
       consumer:  { name: '🔴 消費端/Storage',  bg: '#F8CECC', border: '#B85450', text: '#5c1a17' },
     };
 
-    function OverviewTab() {
+    // Cytoscape canvas — memo'd so React state changes don't destroy it
+    const CyCanvas = React.memo(function CyCanvas({ onNodeTap, onBgTap, cyRefOut }) {
       const containerRef = React.useRef(null);
+
+      React.useEffect(() => {
+        if (!containerRef.current || typeof cytoscape === 'undefined') return;
+
+        const cy = cytoscape({
+          container: containerRef.current,
+          elements: [...CY_NODES, ...CY_EDGES],
+          style: CY_STYLE,
+          layout: { name: 'dagre', rankDir: 'LR', nodeSep: 50, rankSep: 120, edgeSep: 20, ranker: 'tight-tree', spacingFactor: 1.2 },
+          minZoom: 0.2, maxZoom: 3, wheelSensitivity: 0.2,
+        });
+
+        if (cyRefOut) cyRefOut.current = cy;
+
+        const groupByLayer = (nodes) => {
+          const groups = {};
+          nodes.forEach(n => {
+            const cls = n.classes().find(c => c in LAYER_LABELS) || 'other';
+            if (!groups[cls]) groups[cls] = [];
+            groups[cls].push({ id: n.data('id'), label: (n.data('label') || '').replace(/\n/g, ' ') });
+          });
+          return groups;
+        };
+
+        cy.on('tap', 'node', function(e) {
+          const node = e.target;
+          cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed').addClass('dimmed');
+          const upstream = node.predecessors();
+          const downstream = node.successors();
+          node.removeClass('dimmed').addClass('highlighted');
+          upstream.nodes().removeClass('dimmed').addClass('highlighted-upstream');
+          upstream.edges().removeClass('dimmed').addClass('highlighted-upstream');
+          downstream.nodes().removeClass('dimmed').addClass('highlighted-downstream');
+          downstream.edges().removeClass('dimmed').addClass('highlighted-downstream');
+
+          onNodeTap({
+            node: { id: node.data('id'), label: (node.data('label') || '').replace(/\n/g, ' ') },
+            upstream: groupByLayer(upstream.nodes()),
+            downstream: groupByLayer(downstream.nodes()),
+            upstreamCount: upstream.nodes().length,
+            downstreamCount: downstream.nodes().length,
+          });
+        });
+
+        cy.on('tap', function(e) {
+          if (e.target === cy) {
+            cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed');
+            onBgTap();
+          }
+        });
+
+        cy.on('mouseover', 'node', () => { containerRef.current.style.cursor = 'pointer'; });
+        cy.on('mouseout', 'node', () => { containerRef.current.style.cursor = 'default'; });
+        cy.on('layoutstop', () => { cy.fit(cy.elements(), 40); });
+
+        return () => { cy.destroy(); };
+      }, []);
+
+      return <div ref={containerRef} style={{ flex: 1, height: 'calc(100vh - 200px)', minHeight: '600px', background: '#fafafa' }} />;
+    });
+
+    function OverviewTab() {
       const cyRef = React.useRef(null);
       const [searchText, setSearchText] = React.useState('');
       const [searchResults, setSearchResults] = React.useState([]);
       const [selectedInfo, setSelectedInfo] = React.useState(null);
-      const setSelectedInfoRef = React.useRef(setSelectedInfo);
-      setSelectedInfoRef.current = setSelectedInfo;
 
-      // Search + focus node
+      const handleNodeTap = React.useCallback((info) => { setSelectedInfo(info); }, []);
+      const handleBgTap = React.useCallback(() => { setSelectedInfo(null); }, []);
+
       const handleSearch = React.useCallback((text) => {
         setSearchText(text);
         const cy = cyRef.current;
-        if (!cy || !text.trim()) {
-          setSearchResults([]);
-          if (cy) cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed');
-          return;
-        }
+        if (!cy || !text.trim()) { setSearchResults([]); return; }
         const q = text.toLowerCase().replace(/[_\s]/g, '');
         const matched = cy.nodes().filter(n => {
           const label = (n.data('label') || '').toLowerCase().replace(/[_\s\n]/g, '');
@@ -783,129 +842,14 @@
         if (!cy) return;
         const node = cy.getElementById(nodeId);
         if (!node || node.empty()) return;
-
-        // Clear + dim
-        cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed');
-        cy.elements().addClass('dimmed');
-
-        // Highlight chain
+        cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed').addClass('dimmed');
         node.removeClass('dimmed').addClass('highlighted');
         node.predecessors().nodes().removeClass('dimmed').addClass('highlighted-upstream');
         node.predecessors().edges().removeClass('dimmed').addClass('highlighted-upstream');
         node.successors().nodes().removeClass('dimmed').addClass('highlighted-downstream');
         node.successors().edges().removeClass('dimmed').addClass('highlighted-downstream');
-
-        // Animate camera to node
         cy.animate({ center: { eles: node }, zoom: 1.2 }, { duration: 400 });
-        setSearchResults([]);
-        setSearchText('');
-
-        // Also trigger the side panel info
-        const groupByLayer = (nodes) => {
-          const groups = {};
-          nodes.forEach(n => {
-            const cls = n.classes().find(c => c in LAYER_LABELS) || 'other';
-            if (!groups[cls]) groups[cls] = [];
-            groups[cls].push({ id: n.data('id'), label: (n.data('label') || '').replace(/\n/g, ' ') });
-          });
-          return groups;
-        };
-        const upstream = node.predecessors();
-        const downstream = node.successors();
-        setSelectedInfo({
-          node: { id: node.data('id'), label: (node.data('label') || '').replace(/\n/g, ' ') },
-          upstream: groupByLayer(upstream.nodes()),
-          downstream: groupByLayer(downstream.nodes()),
-          upstreamCount: upstream.nodes().length,
-          downstreamCount: downstream.nodes().length,
-        });
-      }, []);
-
-      React.useEffect(() => {
-        if (!containerRef.current) return;
-        if (typeof cytoscape === 'undefined') return;
-
-        const cy = cytoscape({
-          container: containerRef.current,
-          elements: [...CY_NODES, ...CY_EDGES],
-          style: CY_STYLE,
-          layout: {
-            name: 'dagre',
-            rankDir: 'LR',
-            nodeSep: 50,
-            rankSep: 120,
-            edgeSep: 20,
-            ranker: 'tight-tree',
-            spacingFactor: 1.2,
-          },
-          minZoom: 0.2,
-          maxZoom: 3,
-          wheelSensitivity: 0.2,
-        });
-
-        cyRef.current = cy;
-
-        // Click node → highlight + build side panel info
-        cy.on('tap', 'node', function(e) {
-          const node = e.target;
-          cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed');
-          cy.elements().addClass('dimmed');
-
-          const upstream = node.predecessors();
-          const downstream = node.successors();
-
-          node.removeClass('dimmed').addClass('highlighted');
-          upstream.nodes().removeClass('dimmed').addClass('highlighted-upstream');
-          upstream.edges().removeClass('dimmed').addClass('highlighted-upstream');
-          downstream.nodes().removeClass('dimmed').addClass('highlighted-downstream');
-          downstream.edges().removeClass('dimmed').addClass('highlighted-downstream');
-
-          // Build categorized node lists for side panel
-          const groupByLayer = (nodes) => {
-            const groups = {};
-            nodes.forEach(n => {
-              const cls = n.classes().find(c => c in LAYER_LABELS) || 'other';
-              if (!groups[cls]) groups[cls] = [];
-              groups[cls].push({ id: n.data('id'), label: (n.data('label') || '').replace(/\n/g, ' ') });
-            });
-            return groups;
-          };
-
-          const info = {
-            node: { id: node.data('id'), label: (node.data('label') || '').replace(/\n/g, ' ') },
-            upstream: groupByLayer(upstream.nodes()),
-            downstream: groupByLayer(downstream.nodes()),
-            upstreamCount: upstream.nodes().length,
-            downstreamCount: downstream.nodes().length,
-          };
-          console.log('Setting selectedInfo:', info.node.id, 'upstream:', info.upstreamCount, 'downstream:', info.downstreamCount);
-          setSelectedInfoRef.current(info);
-        });
-
-        // Click background → clear (use setTimeout to avoid race with node tap)
-        let justTappedNode = false;
-        cy.on('tap', 'node', function() { justTappedNode = true; });
-        cy.on('tap', function(e) {
-          if (e.target === cy && !justTappedNode) {
-            cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed');
-            setSelectedInfoRef.current(null);
-          }
-          justTappedNode = false;
-        });
-
-        cy.on('mouseover', 'node', function() {
-          containerRef.current.style.cursor = 'pointer';
-        });
-        cy.on('mouseout', 'node', function() {
-          containerRef.current.style.cursor = 'default';
-        });
-
-        // Fit graph to viewport after layout
-        cy.on('layoutstop', function() {
-          cy.fit(cy.elements(), 40);
-        });
-
-        return () => { cy.destroy(); };
+        setSearchResults([]); setSearchText('');
       }, []);
 
       return (
@@ -971,73 +915,81 @@
             </div>
           </div>
           <div style={{ display: 'flex', borderTop: '1px solid #eee' }}>
-            <div ref={containerRef} style={{ flex: 1, height: 'calc(100vh - 200px)', minHeight: '600px', background: '#fafafa' }} />
-            {selectedInfo && (
-              <div style={{ width: 280, borderLeft: '1px solid #ddd', background: '#fff', overflowY: 'auto', height: 'calc(100vh - 200px)', fontSize: 13 }}>
-                <div style={{ padding: '12px 16px', background: '#1a1a2e', color: 'white', position: 'sticky', top: 0, zIndex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedInfo.node.label}</div>
-                  <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{selectedInfo.node.id}</div>
+            <CyCanvas onNodeTap={handleNodeTap} onBgTap={handleBgTap} cyRefOut={cyRef} />
+            <div style={{ width: 300, borderLeft: '1px solid #ddd', background: '#fff', overflowY: 'auto', height: 'calc(100vh - 200px)', fontSize: 13, flexShrink: 0 }}>
+              {!selectedInfo ? (
+                <div style={{ padding: 32, textAlign: 'center', color: '#bbb' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>👆</div>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>點擊節點查看上下游</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>點擊圖上任一節點，<br/>這裡會顯示完整的<br/>上游和下游清單</div>
                 </div>
-
-                {selectedInfo.upstreamCount > 0 && (
-                  <div>
-                    <div style={{ padding: '8px 16px', background: '#E3F2FD', fontWeight: 600, fontSize: 12, color: '#1565C0', position: 'sticky', top: 52, zIndex: 1 }}>
-                      🔵 上游（{selectedInfo.upstreamCount} 個節點）
-                    </div>
-                    {Object.entries(selectedInfo.upstream).map(([layer, nodes]) => {
-                      const lc = LAYER_LABELS[layer] || { name: layer, bg: '#f5f5f5', text: '#666' };
-                      return (
-                      <div key={layer}>
-                        <div style={{ padding: '6px 16px', background: lc.bg, fontSize: 11, fontWeight: 600, color: lc.text, borderLeft: `4px solid ${lc.border || lc.text}` }}>
-                          {lc.name}
-                        </div>
-                        {nodes.map(n => (
-                          <div key={n.id}
-                            onClick={() => { const cy = cyRef.current; if(cy) { cy.animate({ center: { eles: cy.getElementById(n.id) }, zoom: 1.5 }, { duration: 300 }); } }}
-                            style={{ padding: '6px 16px 6px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333', borderLeft: `4px solid ${lc.border || '#ddd'}` }}
-                            onMouseOver={e => e.currentTarget.style.background = lc.bg}
-                            onMouseOut={e => e.currentTarget.style.background = 'white'}
-                          >
-                            {n.label}
-                          </div>
-                        ))}
-                      </div>
-                    ); })}
+              ) : (
+                <div>
+                  <div style={{ padding: '12px 16px', background: '#1a1a2e', color: 'white', position: 'sticky', top: 0, zIndex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedInfo.node.label}</div>
+                    <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{selectedInfo.node.id}</div>
                   </div>
-                )}
 
-                {selectedInfo.downstreamCount > 0 && (
-                  <div>
-                    <div style={{ padding: '8px 16px', background: '#FFF3E0', fontWeight: 600, fontSize: 12, color: '#E65100', position: 'sticky', top: 52, zIndex: 1 }}>
-                      🟠 下游（{selectedInfo.downstreamCount} 個節點）
-                    </div>
-                    {Object.entries(selectedInfo.downstream).map(([layer, nodes]) => {
-                      const lc = LAYER_LABELS[layer] || { name: layer, bg: '#f5f5f5', text: '#666' };
-                      return (
-                      <div key={layer}>
-                        <div style={{ padding: '6px 16px', background: lc.bg, fontSize: 11, fontWeight: 600, color: lc.text, borderLeft: `4px solid ${lc.border || lc.text}` }}>
-                          {lc.name}
-                        </div>
-                        {nodes.map(n => (
-                          <div key={n.id}
-                            onClick={() => { const cy = cyRef.current; if(cy) { cy.animate({ center: { eles: cy.getElementById(n.id) }, zoom: 1.5 }, { duration: 300 }); } }}
-                            style={{ padding: '6px 16px 6px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333', borderLeft: `4px solid ${lc.border || '#ddd'}` }}
-                            onMouseOver={e => e.currentTarget.style.background = lc.bg}
-                            onMouseOut={e => e.currentTarget.style.background = 'white'}
-                          >
-                            {n.label}
-                          </div>
-                        ))}
+                  {selectedInfo.upstreamCount > 0 && (
+                    <div>
+                      <div style={{ padding: '8px 16px', background: '#E3F2FD', fontWeight: 600, fontSize: 12, color: '#1565C0', position: 'sticky', top: 50, zIndex: 1 }}>
+                        🔵 上游（{selectedInfo.upstreamCount} 個節點）
                       </div>
-                    ); })}
-                  </div>
-                )}
+                      {Object.entries(selectedInfo.upstream).map(([layer, nodes]) => {
+                        const lc = LAYER_LABELS[layer] || { name: layer, bg: '#f5f5f5', text: '#666' };
+                        return (
+                        <div key={layer}>
+                          <div style={{ padding: '6px 16px', background: lc.bg, fontSize: 11, fontWeight: 600, color: lc.text, borderLeft: `4px solid ${lc.border || lc.text}` }}>
+                            {lc.name} ({nodes.length})
+                          </div>
+                          {nodes.map(n => (
+                            <div key={n.id}
+                              onClick={() => { const cy = cyRef.current; if(cy) { cy.animate({ center: { eles: cy.getElementById(n.id) }, zoom: 1.5 }, { duration: 300 }); } }}
+                              style={{ padding: '5px 16px 5px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333', borderLeft: `4px solid ${lc.border || '#ddd'}` }}
+                              onMouseOver={e => e.currentTarget.style.background = lc.bg}
+                              onMouseOut={e => e.currentTarget.style.background = 'white'}
+                            >
+                              {n.label}
+                            </div>
+                          ))}
+                        </div>
+                      ); })}
+                    </div>
+                  )}
 
-                {selectedInfo.upstreamCount === 0 && selectedInfo.downstreamCount === 0 && (
-                  <div style={{ padding: 16, color: '#999', textAlign: 'center' }}>此節點無上下游</div>
-                )}
-              </div>
-            )}
+                  {selectedInfo.downstreamCount > 0 && (
+                    <div>
+                      <div style={{ padding: '8px 16px', background: '#FFF3E0', fontWeight: 600, fontSize: 12, color: '#E65100', position: 'sticky', top: 50, zIndex: 1 }}>
+                        🟠 下游（{selectedInfo.downstreamCount} 個節點）
+                      </div>
+                      {Object.entries(selectedInfo.downstream).map(([layer, nodes]) => {
+                        const lc = LAYER_LABELS[layer] || { name: layer, bg: '#f5f5f5', text: '#666' };
+                        return (
+                        <div key={layer}>
+                          <div style={{ padding: '6px 16px', background: lc.bg, fontSize: 11, fontWeight: 600, color: lc.text, borderLeft: `4px solid ${lc.border || lc.text}` }}>
+                            {lc.name} ({nodes.length})
+                          </div>
+                          {nodes.map(n => (
+                            <div key={n.id}
+                              onClick={() => { const cy = cyRef.current; if(cy) { cy.animate({ center: { eles: cy.getElementById(n.id) }, zoom: 1.5 }, { duration: 300 }); } }}
+                              style={{ padding: '5px 16px 5px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333', borderLeft: `4px solid ${lc.border || '#ddd'}` }}
+                              onMouseOver={e => e.currentTarget.style.background = lc.bg}
+                              onMouseOut={e => e.currentTarget.style.background = 'white'}
+                            >
+                              {n.label}
+                            </div>
+                          ))}
+                        </div>
+                      ); })}
+                    </div>
+                  )}
+
+                  {selectedInfo.upstreamCount === 0 && selectedInfo.downstreamCount === 0 && (
+                    <div style={{ padding: 16, color: '#999', textAlign: 'center' }}>此節點無上下游</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       );
