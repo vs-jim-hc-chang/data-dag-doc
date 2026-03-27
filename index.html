@@ -701,7 +701,7 @@
       // ── Savvy PG → API ──
       { data: { source: 'savvy_pg', target: 'insight_api' } },
       // ── 不經過 Redshift 的 DAG ──
-      { data: { source: 'oc_ai_tags', target: 's3_processed' } },
+      { data: { source: 'oc_ai_tags', target: 'rs_oc' } },
       { data: { source: 'oc_recommend', target: 'email_platform' } },
       { data: { source: 'tags', target: 'email_platform' } },
     ];
