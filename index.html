@@ -741,11 +741,22 @@
       { selector: 'edge.highlighted-downstream', style: { 'opacity': 1, 'width': 3, 'line-color': '#FF9800', 'target-arrow-color': '#FF9800', 'line-style': 'solid', 'z-index': 998 }},
     ];
 
+    const LAYER_LABELS = {
+      source: '🟢 資料來源',
+      ingestion: '🔵 資料擷取',
+      bigdata: '🟠 大數據處理',
+      session: '🟣 Session/事件',
+      transform: '🟤 DBT/應用層',
+      redshift: '🏢 Redshift Schema',
+      consumer: '🔴 消費端/Storage',
+    };
+
     function OverviewTab() {
       const containerRef = React.useRef(null);
       const cyRef = React.useRef(null);
       const [searchText, setSearchText] = React.useState('');
       const [searchResults, setSearchResults] = React.useState([]);
+      const [selectedInfo, setSelectedInfo] = React.useState(null);
 
       // Search + focus node
       const handleSearch = React.useCallback((text) => {
@@ -786,6 +797,26 @@
         cy.animate({ center: { eles: node }, zoom: 1.2 }, { duration: 400 });
         setSearchResults([]);
         setSearchText('');
+
+        // Also trigger the side panel info
+        const groupByLayer = (nodes) => {
+          const groups = {};
+          nodes.forEach(n => {
+            const cls = n.classes().find(c => LAYER_LABELS[c]) || 'other';
+            if (!groups[cls]) groups[cls] = [];
+            groups[cls].push({ id: n.data('id'), label: (n.data('label') || '').replace(/\n/g, ' ') });
+          });
+          return groups;
+        };
+        const upstream = node.predecessors();
+        const downstream = node.successors();
+        setSelectedInfo({
+          node: { id: node.data('id'), label: (node.data('label') || '').replace(/\n/g, ' ') },
+          upstream: groupByLayer(upstream.nodes()),
+          downstream: groupByLayer(downstream.nodes()),
+          upstreamCount: upstream.nodes().length,
+          downstreamCount: downstream.nodes().length,
+        });
       }, []);
 
       React.useEffect(() => {
@@ -812,35 +843,46 @@
 
         cyRef.current = cy;
 
-        // Click node → highlight entire upstream + downstream chain
+        // Click node → highlight + build side panel info
         cy.on('tap', 'node', function(e) {
           const node = e.target;
-          // Clear previous highlights
           cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed');
-
-          // Dim everything first
           cy.elements().addClass('dimmed');
 
-          // Find all upstream (predecessors) and downstream (successors)
           const upstream = node.predecessors();
           const downstream = node.successors();
 
-          // Highlight the clicked node
           node.removeClass('dimmed').addClass('highlighted');
-
-          // Highlight upstream chain (blue)
           upstream.nodes().removeClass('dimmed').addClass('highlighted-upstream');
           upstream.edges().removeClass('dimmed').addClass('highlighted-upstream');
-
-          // Highlight downstream chain (orange)
           downstream.nodes().removeClass('dimmed').addClass('highlighted-downstream');
           downstream.edges().removeClass('dimmed').addClass('highlighted-downstream');
+
+          // Build categorized node lists for side panel
+          const groupByLayer = (nodes) => {
+            const groups = {};
+            nodes.forEach(n => {
+              const cls = n.classes().find(c => LAYER_LABELS[c]) || 'other';
+              if (!groups[cls]) groups[cls] = [];
+              groups[cls].push({ id: n.data('id'), label: (n.data('label') || '').replace(/\n/g, ' ') });
+            });
+            return groups;
+          };
+
+          setSelectedInfo({
+            node: { id: node.data('id'), label: (node.data('label') || '').replace(/\n/g, ' ') },
+            upstream: groupByLayer(upstream.nodes()),
+            downstream: groupByLayer(downstream.nodes()),
+            upstreamCount: upstream.nodes().length,
+            downstreamCount: downstream.nodes().length,
+          });
         });
 
-        // Click background → clear all highlights
+        // Click background → clear
         cy.on('tap', function(e) {
           if (e.target === cy) {
             cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed');
+            setSelectedInfo(null);
           }
         });
 
@@ -913,7 +955,71 @@
               <span>資料流向</span>
             </div>
           </div>
-          <div ref={containerRef} style={{ width: '100%', height: 'calc(100vh - 200px)', minHeight: '600px', background: '#fafafa', borderTop: '1px solid #eee' }} />
+          <div style={{ display: 'flex', borderTop: '1px solid #eee' }}>
+            <div ref={containerRef} style={{ flex: 1, height: 'calc(100vh - 200px)', minHeight: '600px', background: '#fafafa' }} />
+            {selectedInfo && (
+              <div style={{ width: 280, borderLeft: '1px solid #ddd', background: '#fff', overflowY: 'auto', height: 'calc(100vh - 200px)', fontSize: 13 }}>
+                <div style={{ padding: '12px 16px', background: '#1a1a2e', color: 'white', position: 'sticky', top: 0, zIndex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedInfo.node.label}</div>
+                  <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{selectedInfo.node.id}</div>
+                </div>
+
+                {selectedInfo.upstreamCount > 0 && (
+                  <div>
+                    <div style={{ padding: '8px 16px', background: '#E3F2FD', fontWeight: 600, fontSize: 12, color: '#1565C0', position: 'sticky', top: 52, zIndex: 1 }}>
+                      🔵 上游（{selectedInfo.upstreamCount} 個節點）
+                    </div>
+                    {Object.entries(selectedInfo.upstream).map(([layer, nodes]) => (
+                      <div key={layer}>
+                        <div style={{ padding: '6px 16px', background: '#f5f5f5', fontSize: 11, fontWeight: 600, color: '#666' }}>
+                          {LAYER_LABELS[layer] || layer}
+                        </div>
+                        {nodes.map(n => (
+                          <div key={n.id}
+                            onClick={() => { const cy = cyRef.current; if(cy) { cy.animate({ center: { eles: cy.getElementById(n.id) }, zoom: 1.5 }, { duration: 300 }); } }}
+                            style={{ padding: '6px 16px 6px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333' }}
+                            onMouseOver={e => e.currentTarget.style.background = '#E3F2FD'}
+                            onMouseOut={e => e.currentTarget.style.background = 'white'}
+                          >
+                            {n.label}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedInfo.downstreamCount > 0 && (
+                  <div>
+                    <div style={{ padding: '8px 16px', background: '#FFF3E0', fontWeight: 600, fontSize: 12, color: '#E65100', position: 'sticky', top: 52, zIndex: 1 }}>
+                      🟠 下游（{selectedInfo.downstreamCount} 個節點）
+                    </div>
+                    {Object.entries(selectedInfo.downstream).map(([layer, nodes]) => (
+                      <div key={layer}>
+                        <div style={{ padding: '6px 16px', background: '#f5f5f5', fontSize: 11, fontWeight: 600, color: '#666' }}>
+                          {LAYER_LABELS[layer] || layer}
+                        </div>
+                        {nodes.map(n => (
+                          <div key={n.id}
+                            onClick={() => { const cy = cyRef.current; if(cy) { cy.animate({ center: { eles: cy.getElementById(n.id) }, zoom: 1.5 }, { duration: 300 }); } }}
+                            style={{ padding: '6px 16px 6px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333' }}
+                            onMouseOver={e => e.currentTarget.style.background = '#FFF3E0'}
+                            onMouseOut={e => e.currentTarget.style.background = 'white'}
+                          >
+                            {n.label}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedInfo.upstreamCount === 0 && selectedInfo.downstreamCount === 0 && (
+                  <div style={{ padding: 16, color: '#999', textAlign: 'center' }}>此節點無上下游</div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       );
     }
