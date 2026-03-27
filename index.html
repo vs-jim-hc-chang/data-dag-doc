@@ -932,26 +932,34 @@
             </div>
           </div>
           <div className="overview-legend">
-            {LEGEND_ITEMS.map(item => (
+            {[
+              { bg: "#D5E8D4", border: "#82B366", label: "資料來源 (Sources)" },
+              { bg: "#DAE8FC", border: "#6C8EBF", label: "資料擷取 Layer 1" },
+              { bg: "#FFF2CC", border: "#D6B656", label: "大數據處理 Layer 2" },
+              { bg: "#E1D5E7", border: "#9673A6", label: "Session 計算 Layer 3" },
+              { bg: "#FFE6CC", border: "#D79B00", label: "DBT + 應用層 Layer 4-5" },
+              { bg: "#D4E6F1", border: "#2E86C1", label: "Redshift Schema" },
+              { bg: "#F8CECC", border: "#B85450", label: "消費端" },
+            ].map(item => (
               <div key={item.label} className="legend-item">
-                <div className="legend-dot" style={{ background: item.color, border: "1px solid #aaa" }} />
+                <div style={{ width: 16, height: 16, borderRadius: 3, backgroundColor: item.bg, border: `2px solid ${item.border}`, flexShrink: 0 }} />
                 <span>{item.label}</span>
               </div>
             ))}
             <div className="legend-item">
-              <div style={{ width: 16, height: 16, borderRadius: 3, background: "#FFF2CC", border: "3px solid #FF0000" }} />
+              <div style={{ width: 16, height: 16, borderRadius: 3, backgroundColor: "#FFF2CC", border: "3px solid #FF0000", flexShrink: 0 }} />
               <span>Hub DAG (高影響)</span>
             </div>
             <div className="legend-item">
-              <div style={{ width: 16, height: 16, borderRadius: 3, background: "#DAE8FC", border: "2px dashed #FF6600" }} />
+              <div style={{ width: 16, height: 16, borderRadius: 3, backgroundColor: "#DAE8FC", border: "2px dashed #FF6600", flexShrink: 0 }} />
               <span>不穩定 DAG</span>
             </div>
             <div className="legend-item">
-              <div style={{ width: 30, height: 2, borderTop: '2px dashed #E53935' }} />
-              <span style={{ color: '#E53935' }}>等待依賴（要等上游跑完）</span>
+              <div style={{ width: 24, height: 0, borderTop: '2px dashed #E53935', flexShrink: 0 }} />
+              <span style={{ color: '#E53935' }}>等待依賴</span>
             </div>
             <div className="legend-item">
-              <div style={{ width: 30, height: 2, background: '#aaa' }} />
+              <div style={{ width: 24, height: 0, borderTop: '2px solid #aaa', flexShrink: 0 }} />
               <span>資料流向</span>
             </div>
           </div>
