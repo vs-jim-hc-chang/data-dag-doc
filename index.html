@@ -501,19 +501,19 @@
     };
 
     const CY_NODES = [
-      // Sources
-      { data: { id: 'azure_blob', label: 'Azure Blob\nStorage', layer: 'source' }, classes: 'source' },
-      { data: { id: 'azure_api', label: 'Azure AppInsight\nAPI (9 apps)', layer: 'source' }, classes: 'source' },
-      { data: { id: 'product_pg', label: 'Product PG\nmyviewboard-product', layer: 'source' }, classes: 'source' },
-      { data: { id: 'dm_pg', label: 'DM PG\nmyviewboard-dm', layer: 'source' }, classes: 'source' },
-      { data: { id: 'vs_account_pg', label: 'VS Account PG', layer: 'source' }, classes: 'source' },
-      { data: { id: 'teamwork_pg', label: 'Teamwork PG', layer: 'source' }, classes: 'source' },
-      { data: { id: 'email_pg', label: 'Email Service PG', layer: 'source' }, classes: 'source' },
-      { data: { id: 'salesforce_api', label: 'Salesforce API', layer: 'source' }, classes: 'source' },
-      { data: { id: 'bettermode_api', label: 'Bettermode API', layer: 'source' }, classes: 'source' },
-      { data: { id: 'oracle_s3', label: 'Oracle IFP (S3)', layer: 'source' }, classes: 'source' },
-      { data: { id: 'pbi_api', label: 'Power BI API', layer: 'source' }, classes: 'source' },
-      { data: { id: 'dynamodb', label: 'DynamoDB\n(email campaign log)', layer: 'source' }, classes: 'source' },
+      // Sources — 標明類型、系統名、存什麼資料
+      { data: { id: 'azure_blob', label: '☁️ Azure Blob Storage\nAppInsight Continuous Export\n各 App 的原始操作 Log', layer: 'source' }, classes: 'source' },
+      { data: { id: 'azure_api', label: '☁️ Azure AppInsight API\n9 個 App 的 Custom Events\nCompanion/mvbF/mvbx 等', layer: 'source' }, classes: 'source' },
+      { data: { id: 'product_pg', label: '🐘 PostgreSQL (Read Replica)\nmyviewboard-product\n帳號/Entity/登入/訂閱/Instance', layer: 'source' }, classes: 'source' },
+      { data: { id: 'dm_pg', label: '🐘 PostgreSQL (Read Replica)\nmyviewboard-dm\nDevice Manager 裝置資料', layer: 'source' }, classes: 'source' },
+      { data: { id: 'vs_account_pg', label: '🐘 PostgreSQL\nviewsonic-account-prod\nVS Account/SSO/Entity', layer: 'source' }, classes: 'source' },
+      { data: { id: 'teamwork_pg', label: '🐘 PostgreSQL\npostgres_prod_teamwork\nBoard/Project/Team/Event', layer: 'source' }, classes: 'source' },
+      { data: { id: 'email_pg', label: '🐘 PostgreSQL\nemail-service\nCampaign/Group/Tags', layer: 'source' }, classes: 'source' },
+      { data: { id: 'salesforce_api', label: '🌐 Salesforce CRM API\nEntity 銷售關係\n客戶/機會/合約', layer: 'source' }, classes: 'source' },
+      { data: { id: 'bettermode_api', label: '🌐 Bettermode GraphQL API\n社群會員/貼文/徽章', layer: 'source' }, classes: 'source' },
+      { data: { id: 'oracle_s3', label: '📦 S3 (Oracle 匯出)\nIFP 硬體銷售資料\n型號/序號/國家', layer: 'source' }, classes: 'source' },
+      { data: { id: 'pbi_api', label: '🌐 Azure Power BI API\n報表使用記錄\n誰看了什麼報表', layer: 'source' }, classes: 'source' },
+      { data: { id: 'dynamodb', label: '🗄️ AWS DynamoDB\nEmail 發送記錄\nCampaign Action Log', layer: 'source' }, classes: 'source' },
       // Ingestion
       { data: { id: 'dbrix', label: 'dbrix_appinsight\n_to_s3', layer: 'ingestion' }, classes: 'ingestion' },
       { data: { id: 'appinsight', label: 'appinsight_daily\n⚠️ Hub DAG', layer: 'ingestion' }, classes: 'ingestion hub' },
@@ -645,7 +645,7 @@
         'font-size': '11px', 'font-family': 'system-ui, sans-serif', 'width': '140', 'height': '60',
         'shape': 'roundrectangle', 'padding': '8px',
       }},
-      { selector: 'node.source', style: { 'background-color': '#D5E8D4', 'border-color': '#82B366', 'border-width': 2, 'color': '#2d5016' }},
+      { selector: 'node.source', style: { 'background-color': '#D5E8D4', 'border-color': '#82B366', 'border-width': 2, 'color': '#2d5016', 'width': '200', 'height': '80', 'font-size': '10px' }},
       { selector: 'node.ingestion', style: { 'background-color': '#DAE8FC', 'border-color': '#6C8EBF', 'border-width': 2, 'color': '#1a3a5c' }},
       { selector: 'node.bigdata', style: { 'background-color': '#FFF2CC', 'border-color': '#D6B656', 'border-width': 2, 'color': '#5c4a00', 'width': '160', 'height': '70' }},
       { selector: 'node.session', style: { 'background-color': '#E1D5E7', 'border-color': '#9673A6', 'border-width': 2, 'color': '#4a2d5c' }},
