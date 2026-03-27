@@ -871,21 +871,26 @@
             return groups;
           };
 
-          setSelectedInfoRef.current({
+          const info = {
             node: { id: node.data('id'), label: (node.data('label') || '').replace(/\n/g, ' ') },
             upstream: groupByLayer(upstream.nodes()),
             downstream: groupByLayer(downstream.nodes()),
             upstreamCount: upstream.nodes().length,
             downstreamCount: downstream.nodes().length,
-          });
+          };
+          console.log('Setting selectedInfo:', info.node.id, 'upstream:', info.upstreamCount, 'downstream:', info.downstreamCount);
+          setSelectedInfoRef.current(info);
         });
 
-        // Click background → clear
+        // Click background → clear (use setTimeout to avoid race with node tap)
+        let justTappedNode = false;
+        cy.on('tap', 'node', function() { justTappedNode = true; });
         cy.on('tap', function(e) {
-          if (e.target === cy) {
+          if (e.target === cy && !justTappedNode) {
             cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed');
             setSelectedInfoRef.current(null);
           }
+          justTappedNode = false;
         });
 
         cy.on('mouseover', 'node', function() {
