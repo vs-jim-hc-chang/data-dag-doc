@@ -757,6 +757,8 @@
       const [searchText, setSearchText] = React.useState('');
       const [searchResults, setSearchResults] = React.useState([]);
       const [selectedInfo, setSelectedInfo] = React.useState(null);
+      const setSelectedInfoRef = React.useRef(setSelectedInfo);
+      setSelectedInfoRef.current = setSelectedInfo;
 
       // Search + focus node
       const handleSearch = React.useCallback((text) => {
@@ -869,7 +871,7 @@
             return groups;
           };
 
-          setSelectedInfo({
+          setSelectedInfoRef.current({
             node: { id: node.data('id'), label: (node.data('label') || '').replace(/\n/g, ' ') },
             upstream: groupByLayer(upstream.nodes()),
             downstream: groupByLayer(downstream.nodes()),
@@ -882,7 +884,7 @@
         cy.on('tap', function(e) {
           if (e.target === cy) {
             cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed');
-            setSelectedInfo(null);
+            setSelectedInfoRef.current(null);
           }
         });
 
