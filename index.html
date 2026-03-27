@@ -306,10 +306,11 @@
     }
 
     .legend-dot {
-      width: 12px;
-      height: 12px;
+      width: 16px;
+      height: 16px;
       border-radius: 3px;
       flex-shrink: 0;
+      border: 1px solid #999;
     }
 
     .mermaid-container {
@@ -896,11 +897,11 @@
               </div>
             ))}
             <div className="legend-item">
-              <div className="legend-dot" style={{ background: "#FFF2CC", border: "4px solid #FF0000" }} />
+              <div style={{ width: 16, height: 16, borderRadius: 3, background: "#FFF2CC", border: "3px solid #FF0000" }} />
               <span>Hub DAG (高影響)</span>
             </div>
             <div className="legend-item">
-              <div className="legend-dot" style={{ background: "#DAE8FC", border: "3px dashed #FF6600" }} />
+              <div style={{ width: 16, height: 16, borderRadius: 3, background: "#DAE8FC", border: "2px dashed #FF6600" }} />
               <span>不穩定 DAG</span>
             </div>
             <div className="legend-item">
