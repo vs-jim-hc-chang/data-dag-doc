@@ -820,6 +820,11 @@
           containerRef.current.style.cursor = 'default';
         });
 
+        // Fit graph to viewport after layout
+        cy.on('layoutstop', function() {
+          cy.fit(cy.elements(), 40);
+        });
+
         return () => { cy.destroy(); };
       }, []);
 
@@ -877,7 +882,7 @@
               <span>資料流向</span>
             </div>
           </div>
-          <div ref={containerRef} style={{ width: '100%', height: '800px', background: '#fafafa', borderTop: '1px solid #eee' }} />
+          <div ref={containerRef} style={{ width: '100%', height: 'calc(100vh - 200px)', minHeight: '600px', background: '#fafafa', borderTop: '1px solid #eee' }} />
         </div>
       );
     }
