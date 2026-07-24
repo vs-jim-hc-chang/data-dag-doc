@@ -275,11 +275,11 @@ const DAG_DATA = [
   },
   {
     "id": "instance_android_launcher_device_entity",
-    "summary": "從 DM 資料庫抓 Android Launcher 的裝置、帳號綁定資料。",
+    "summary": "從 Product PG 抓帳號綁定 + DM PG 抓裝置 MAC，合成 Android Launcher 裝置對應關係。",
     "schedule": "00:20 daily",
     "owner": "Jackie",
     "stability": "retries=9, delay=6min ⚠️ 不穩定",
-    "source": "DM PG（launcher_device_entity）",
+    "source": "Product PG（application.register_app, application.extend_app）+ DM PG（public.device_mac）",
     "target": "S3 → Redshift",
     "delay": "T+1",
     "description": "做的事：\n1. 同時抓 3 張表：instance_android、android_launcher、launcher_device_entity\n2. 等全部完成後通知 → instance_relatio",
