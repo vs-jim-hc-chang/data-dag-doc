@@ -850,7 +850,7 @@ window.GRAPH_DATA = {
       ],
       "flow": "[VS Account PG] --> [EC2 Python] --> [S3] --> [Redshift]",
       "source_resources": [
-        "pg_vs_account"
+        "pg_product"
       ],
       "dest_resources": [
         "s3",
@@ -871,11 +871,30 @@ window.GRAPH_DATA = {
       ],
       "flow": "[VS Account Stage PG] --> [EC2 Python] --> [Redshift stage]",
       "source_resources": [
-        "pg_vs_account_stage"
+        "stage_savvy_pg"
       ],
       "dest_resources": [
         "redshift"
       ]
+    },
+    {
+      "id": "lambda_vs_account_export",
+      "schedule": null,
+      "owner": "external (AWS Lambda)",
+      "file": null,
+      "layer": "external",
+      "sources": [
+        "Dumps viewsonic-account-prod PG snapshot to s3://vs-account-export/ (not an Airflow DAG)"
+      ],
+      "destinations": [],
+      "flow": "external process (not an Airflow DAG)",
+      "source_resources": [
+        "pg_vs_account"
+      ],
+      "dest_resources": [
+        "s3"
+      ],
+      "is_external": true
     }
   ],
   "edges": [
@@ -1065,13 +1084,7 @@ window.GRAPH_DATA = {
       "id": "pg_vs_account",
       "label": "VS Account PG",
       "kind": "db",
-      "note": "viewsonic-account-prod"
-    },
-    {
-      "id": "pg_vs_account_stage",
-      "label": "VS Account Stage PG",
-      "kind": "db",
-      "note": "stage"
+      "note": "viewsonic-account-prod (by Lambda export to S3)"
     },
     {
       "id": "pg_teamwork",
@@ -1143,7 +1156,7 @@ window.GRAPH_DATA = {
       "id": "stage_savvy_pg",
       "label": "Stage Savvy PG",
       "kind": "sink",
-      "note": "stage env"
+      "note": "myviewboard-product-orm-stage (可讀可寫)"
     },
     {
       "id": "email_output",

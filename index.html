@@ -254,6 +254,7 @@
     .layer-publish   { background: #fee2e2; }
     .layer-app       { background: #cffafe; }
     .layer-util      { background: #f1f5f9; }
+    .layer-external  { background: repeating-linear-gradient(45deg, #fef3c7, #fef3c7 6px, #fde68a 6px, #fde68a 12px); border-style: dashed !important; border-color: #b45309 !important; color: #78350f; }
 
     /* Resource node — data source / storage / sink */
     .rf-resource {
@@ -393,6 +394,7 @@
       { id: 'publish',   label: 'Publish (RS → PG)' },
       { id: 'app',       label: 'Application 層' },
       { id: 'util',      label: 'Utility' },
+      { id: 'external',  label: 'External (非 Airflow)' },
     ];
 
     // Layout with dagre — everything in one layered LR graph so resources cluster at the edges
@@ -633,15 +635,22 @@
           ),
           d.paused_reason && React.createElement('div', { className: 'detail-value', style: { marginTop: 8, fontSize: 11, color: '#b91c1c' } }, d.paused_reason),
         ),
-        React.createElement('div', { className: 'detail-section' },
-          React.createElement('div', { className: 'detail-label' }, 'File'),
-          React.createElement('div', { className: 'detail-value' },
-            React.createElement('code', null, d.file)
-          ),
-          React.createElement('div', { style: { marginTop: 6 } },
-            React.createElement('a', { href: airflow, target: '_blank', style: { fontSize: 11, color: '#0284c7', marginRight: 12 } }, 'Airflow ↗'),
-          )
-        ),
+        d.is_external
+          ? React.createElement('div', { className: 'detail-section' },
+              React.createElement('div', { className: 'detail-label' }, 'External Process'),
+              React.createElement('div', { className: 'detail-value', style: { color: '#78350f' } },
+                'This is NOT an Airflow DAG. Rendered here for data lineage completeness.'
+              )
+            )
+          : React.createElement('div', { className: 'detail-section' },
+              React.createElement('div', { className: 'detail-label' }, 'File'),
+              React.createElement('div', { className: 'detail-value' },
+                React.createElement('code', null, d.file)
+              ),
+              React.createElement('div', { style: { marginTop: 6 } },
+                React.createElement('a', { href: airflow, target: '_blank', style: { fontSize: 11, color: '#0284c7', marginRight: 12 } }, 'Airflow ↗'),
+              )
+            ),
         React.createElement('div', { className: 'detail-section' },
           React.createElement('div', { className: 'detail-label' }, 'Flow'),
           React.createElement('div', { className: 'flow-arrow' }, d.flow)
@@ -997,7 +1006,8 @@
                   const l = n.data?.layer;
                   return {
                     ingest: '#86efac', compute: '#fdba74', session: '#93c5fd',
-                    transform: '#c4b5fd', publish: '#fca5a5', app: '#67e8f9', util: '#cbd5e1'
+                    transform: '#c4b5fd', publish: '#fca5a5', app: '#67e8f9', util: '#cbd5e1',
+                    external: '#fbbf24'
                   }[l] || '#cbd5e1';
                 },
                 maskColor: 'rgba(240,244,248,0.6)',
