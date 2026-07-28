@@ -3,1869 +3,788 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Data Team DAG 架構總覽</title>
+  <title>Data Team DAG 依賴圖</title>
 
-  <!-- React 18 -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.3.1",
+      "react/": "https://esm.sh/react@18.3.1/",
+      "react-dom": "https://esm.sh/react-dom@18.3.1?deps=react@18.3.1",
+      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
+      "@xyflow/react": "https://esm.sh/@xyflow/react@12.3.5?deps=react@18.3.1,react-dom@18.3.1",
+      "dagre": "https://esm.sh/dagre@0.8.5"
+    }
+  }
+  </script>
 
-  <!-- Babel Standalone for JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="https://esm.sh/@xyflow/react@12.3.5/dist/style.css">
 
-  <!-- Mermaid 10.x -->
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-
-  <!-- Cytoscape.js + dagre layout (for Tab 1 overview) -->
-  <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.4/dist/cytoscape.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
-
-  <!-- DAG Data (auto-generated) -->
   <script src="dag_data.js"></script>
 
   <style>
-    /* ── Reset & Base ── */
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
-
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      margin: 0;
-      background: #f0f2f5;
-      color: #333;
-      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", sans-serif;
+      background: #f5f7fa;
+      color: #1e293b;
     }
+    #root { height: 100vh; display: flex; flex-direction: column; }
 
-    /* ── Header Bar ── */
+    /* Header */
     .header {
       background: #1a1a2e;
       color: white;
-      height: 60px;
+      height: 56px;
       display: flex;
       align-items: center;
-      padding: 0 24px;
+      padding: 0 20px;
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      flex-shrink: 0;
+    }
+    .header-title { font-size: 16px; font-weight: 600; letter-spacing: 0.3px; color: #e0e6ff; }
+    .header-title span { color: #4fc3f7; }
+    .search-box {
+      flex: 1;
+      max-width: 480px;
+      position: relative;
+    }
+    .search-input {
+      width: 100%;
+      height: 34px;
+      padding: 0 32px 0 12px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+    }
+    .search-input:focus { border-color: #4fc3f7; }
+    .search-input::placeholder { color: #64748b; }
+    .search-clear {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #64748b;
+      background: none;
+      border: none;
+      font-size: 16px;
+      padding: 0 4px;
+    }
+    .search-clear:hover { color: #e2e8f0; }
+    .stats {
+      color: #94a3b8;
+      font-size: 12px;
+      margin-left: auto;
+    }
+
+    /* Layout */
+    .main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+    .graph-area {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+    }
+    .detail-panel {
+      width: 400px;
+      background: white;
+      border-left: 1px solid #e2e8f0;
+      overflow-y: auto;
+      flex-shrink: 0;
+      box-shadow: -2px 0 8px rgba(0,0,0,0.04);
+    }
+    .detail-empty {
+      padding: 40px 20px;
+      color: #94a3b8;
+      text-align: center;
+      font-size: 13px;
+    }
+    .detail-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
       position: sticky;
       top: 0;
-      z-index: 100;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      z-index: 1;
     }
-
-    .header-title {
-      font-size: 17px;
-      font-weight: 600;
-      letter-spacing: 0.3px;
-      white-space: nowrap;
-      margin-right: 36px;
-      color: #e0e6ff;
-    }
-
-    .header-title span {
-      color: #4fc3f7;
-    }
-
-    /* ── Tab Navigation ── */
-    .tab-nav {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      height: 100%;
-    }
-
-    .tab-btn {
-      background: transparent;
-      color: #aaa;
-      border: none;
-      border-bottom: 3px solid transparent;
-      height: 60px;
-      padding: 0 18px;
-      font-size: 14px;
-      font-family: inherit;
-      cursor: pointer;
-      transition: color 0.2s, border-color 0.2s;
-      white-space: nowrap;
-    }
-
-    .tab-btn:hover {
-      color: #ddd;
-    }
-
-    .tab-btn.active {
-      color: white;
-      border-bottom-color: #4fc3f7;
-    }
-
-    /* ── Main Content Wrapper ── */
-    .content-wrapper {
-      padding: 24px;
-      margin: 0 auto;
-    }
-
-    /* ── Placeholder Cards ── */
-    .placeholder-card {
-      background: white;
-      border-radius: 8px;
-      padding: 48px 32px;
-      text-align: center;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      min-height: 320px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-    }
-
-    .placeholder-icon {
-      font-size: 48px;
-      opacity: 0.4;
-    }
-
-    .placeholder-title {
-      font-size: 20px;
-      font-weight: 600;
-      color: #555;
-    }
-
-    .placeholder-badge {
-      background: #e3f2fd;
-      color: #1565c0;
-      border-radius: 20px;
-      padding: 4px 14px;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.4px;
-    }
-
-    /* ── Tab 3: DAG 詳細 Layout ── */
-    .dag-detail-layout {
-      display: flex;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      overflow: hidden;
-      min-height: calc(100vh - 132px);
-    }
-
-    /* Left Panel */
-    .dag-list-panel {
-      width: 280px;
-      flex-shrink: 0;
-      background: #f5f5f5;
-      border-right: 1px solid #ddd;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .dag-list-header {
-      padding: 16px;
-      border-bottom: 1px solid #ddd;
-      background: #f5f5f5;
-    }
-
-    .dag-list-header h3 {
-      margin: 0 0 10px 0;
-      font-size: 13px;
-      font-weight: 600;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-    }
-
-    .dag-search-input {
-      width: 100%;
-      padding: 8px 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 13px;
-      font-family: inherit;
-      background: white;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .dag-search-input:focus {
-      border-color: #4fc3f7;
-    }
-
-    .dag-list-count {
-      margin-top: 8px;
-      font-size: 11px;
-      color: #999;
-    }
-
-    .dag-list-scroll {
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    .dag-list-item {
-      padding: 12px 16px;
-      cursor: pointer;
-      font-size: 13px;
-      color: #444;
-      border-bottom: 1px solid #ebebeb;
-      transition: background 0.15s;
-      font-family: "SF Mono", "Consolas", monospace;
+    .detail-header h2 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      color: #0f172a;
       word-break: break-all;
     }
-
-    .dag-list-item:hover {
-      background: #e3f2fd;
+    .detail-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
     }
-
-    .dag-list-item.selected {
-      background: #bbdefb;
-      color: #0d47a1;
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      background: #e2e8f0;
+      color: #475569;
+    }
+    .badge-schedule { background: #dbeafe; color: #1e40af; font-family: "SF Mono", Consolas, monospace; }
+    .badge-owner { background: #fef3c7; color: #92400e; }
+    .badge-paused { background: #fee2e2; color: #b91c1c; }
+    .detail-section {
+      padding: 12px 20px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .detail-section:last-child { border-bottom: none; }
+    .detail-label {
+      font-size: 11px;
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 6px;
     }
-
-    .dag-list-empty {
-      padding: 24px 16px;
+    .detail-value {
       font-size: 13px;
-      color: #aaa;
-      text-align: center;
+      color: #1e293b;
+      line-height: 1.5;
     }
-
-    /* Right Panel — first definition removed, consolidated below */
-
-    .dag-detail-empty {
-      text-align: center;
-      color: #bbb;
+    .detail-value code {
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 12px;
     }
-
-    .dag-detail-empty-icon {
-      font-size: 56px;
-      margin-bottom: 16px;
+    .detail-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
     }
-
-    .dag-detail-empty-text {
-      font-size: 16px;
+    .detail-list li {
+      padding: 4px 0;
+      font-size: 12px;
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      color: #334155;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .detail-list li:not(:last-child) {
+      border-bottom: 1px dashed #f1f5f9;
+    }
+    .flow-arrow {
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      font-size: 12px;
+      color: #334155;
+      background: #f8fafc;
+      padding: 8px 10px;
+      border-radius: 4px;
+      word-break: break-word;
+      line-height: 1.6;
+    }
+    .dep-item {
+      display: flex;
+      align-items: flex-start;
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border-radius: 4px;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .dep-item:hover { background: #e0f2fe; }
+    .dep-name {
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      font-size: 12px;
+      color: #0369a1;
       font-weight: 500;
     }
+    .dep-meta {
+      display: block;
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 2px;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+    .dep-type-marker { color: #059669; }
+    .dep-type-sensor { color: #dc2626; }
 
-    .dag-detail-empty-sub {
-      font-size: 13px;
-      margin-top: 6px;
-      color: #ccc;
-    }
-
-    /* ── Scrollbar Styling ── */
-    .dag-list-scroll::-webkit-scrollbar {
-      width: 6px;
-    }
-    .dag-list-scroll::-webkit-scrollbar-track {
-      background: #f0f0f0;
-    }
-    .dag-list-scroll::-webkit-scrollbar-thumb {
-      background: #ccc;
-      border-radius: 3px;
-    }
-    .dag-list-scroll::-webkit-scrollbar-thumb:hover {
-      background: #aaa;
-    }
-
-    /* ── Tab 1: Overview Mermaid Chart ── */
-    .overview-card {
+    /* React Flow node styles */
+    .rf-node {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      font-weight: 500;
+      border: 2px solid transparent;
       background: white;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.15s;
+      min-width: 160px;
+      text-align: center;
+      color: #0f172a;
     }
+    .rf-node:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-1px); }
+    .rf-node.selected { border-color: #0ea5e9 !important; box-shadow: 0 0 0 3px rgba(14,165,233,0.2); }
+    .rf-node.upstream { border-color: #059669 !important; }
+    .rf-node.downstream { border-color: #f59e0b !important; }
+    .rf-node.dimmed { opacity: 0.25; }
+    .rf-node-label { line-height: 1.3; word-break: break-word; }
+    .rf-node-meta { font-size: 10px; font-family: system-ui, sans-serif; margin-top: 3px; color: #64748b; font-weight: normal; }
+    .rf-node.paused .rf-node-label { text-decoration: line-through; opacity: 0.7; }
 
-    .overview-card-header {
-      padding: 16px 24px;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    /* Layer colors */
+    .layer-ingest    { background: #dcfce7; }
+    .layer-compute   { background: #ffedd5; }
+    .layer-session   { background: #dbeafe; }
+    .layer-transform { background: #ede9fe; }
+    .layer-publish   { background: #fee2e2; }
+    .layer-app       { background: #cffafe; }
+    .layer-util      { background: #f1f5f9; }
+
+    /* Legend */
+    .legend {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: white;
+      padding: 10px 12px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      font-size: 11px;
+      z-index: 5;
+      max-width: 220px;
     }
-
-    .overview-card-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #333;
-      margin: 0;
-    }
-
-    .overview-legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding: 12px 24px;
-      border-bottom: 1px solid #f0f0f0;
-      background: #fafafa;
-    }
-
+    .legend-title { font-weight: 600; margin-bottom: 6px; color: #475569; }
     .legend-item {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
-      color: #555;
+      margin-bottom: 3px;
+      color: #334155;
     }
-
-    .legend-dot {
-      width: 16px;
-      height: 16px;
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
       border-radius: 3px;
-      flex-shrink: 0;
-      border: 1px solid #999;
+      border: 1px solid #cbd5e1;
+    }
+    .legend-note {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed #e2e8f0;
+      color: #64748b;
+      font-size: 10px;
+      line-height: 1.4;
     }
 
-    .mermaid-container {
-      overflow: auto;
-      padding: 24px;
-      min-height: 400px;
+    /* Reset button */
+    .reset-btn {
+      background: transparent;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
     }
+    .reset-btn:hover { background: #1e293b; color: white; }
 
-    .mermaid-container svg {
-      display: block;
-      margin: 0 auto;
+    /* React Flow overrides */
+    .react-flow__attribution { background: transparent !important; font-size: 10px; }
+    .react-flow__edge-path { stroke: #475569; stroke-width: 2; }
+    .react-flow__edge:hover .react-flow__edge-path { stroke: #0f172a; stroke-width: 3; }
+    .react-flow__edge.upstream-edge .react-flow__edge-path {
+      stroke: #059669;
+      stroke-width: 3.5;
+      filter: drop-shadow(0 0 3px rgba(5,150,105,0.4));
     }
-
-    .mermaid-error {
-      padding: 24px;
-      color: #c62828;
-      font-size: 13px;
-      font-family: monospace;
-      background: #fff8f8;
-      border: 1px solid #ffcdd2;
-      border-radius: 4px;
-      white-space: pre-wrap;
+    .react-flow__edge.downstream-edge .react-flow__edge-path {
+      stroke: #f59e0b;
+      stroke-width: 3.5;
+      filter: drop-shadow(0 0 3px rgba(245,158,11,0.4));
     }
-
-    /* ── Tab 3: DAG Detail Right Panel ── */
-    .dag-detail-content {
-      width: 100%;
-      height: 100%;
-      overflow-y: auto;
-      padding: 28px 32px;
-      align-self: flex-start;
-    }
-
-    .dag-detail-panel {
-      flex: 1;
-      display: flex;
-      align-items: flex-start;
-      padding: 0;
-      background: white;
-      overflow-y: auto;
-      min-height: 0;
-    }
-
-    .dag-detail-header {
-      margin-bottom: 4px;
-    }
-
-    .dag-detail-title {
-      font-size: 20px;
-      font-weight: 700;
-      font-family: "SF Mono", "Consolas", monospace;
-      color: #1a1a2e;
-      margin: 0 0 6px 0;
-    }
-
-    .dag-detail-summary {
-      font-size: 14px;
-      color: #555;
-      margin: 0;
-    }
-
-    .dag-info-cards {
-      display: flex;
-      gap: 12px;
-      margin: 16px 0;
-      flex-wrap: wrap;
-    }
-
-    .dag-info-card {
-      background: #f8f9fa;
-      border-radius: 8px;
-      padding: 14px 16px;
-      flex: 1;
-      min-width: 120px;
-    }
-
-    .dag-info-card label {
-      font-size: 11px;
-      color: #888;
-      display: block;
-      margin-bottom: 5px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .dag-info-card .value {
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    .dag-section {
-      margin: 20px 0;
-    }
-
-    .dag-section h3 {
-      font-size: 13px;
-      color: #888;
-      margin: 0 0 8px 0;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .dag-description {
-      white-space: pre-wrap;
-      line-height: 1.9;
-      font-size: 14px;
-      color: #444;
-    }
-
-    .dag-flow-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .dag-flow-label {
-      background: #e3f2fd;
-      padding: 7px 14px;
-      border-radius: 4px;
-      font-size: 13px;
-      color: #1565c0;
-    }
-
-    .dag-flow-arrow {
-      font-size: 18px;
-      color: #aaa;
-    }
-
-    .pbi-impact {
-      background: #fff3e0;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      color: #e65100;
-    }
-
-    .dag-mermaid-wrap {
-      overflow-x: auto;
-      background: #fafafa;
-      border-radius: 8px;
-      padding: 16px;
-      border: 1px solid #eee;
-    }
-
-    .dag-detail-empty-wrap {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      min-height: 400px;
-    }
+    .react-flow__edge.dimmed .react-flow__edge-path { stroke: #e2e8f0; stroke-width: 1; opacity: 0.4; }
+    .react-flow__edge-text { font-size: 11px; font-family: system-ui, sans-serif; fill: #334155; font-weight: 500; }
+    .react-flow__edge-textbg { fill: white; }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
-  <script type="text/babel">
-    // ── Mermaid initialization ──────────────────────────────────────────────
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'default',
-      securityLevel: 'loose',
-      flowchart: {
-        useMaxWidth: false,
-        htmlLabels: true,
-        curve: 'basis'
-      }
-    });
+  <script type="module">
+    import React, { useState, useMemo, useCallback, useEffect } from 'react';
+    import { createRoot } from 'react-dom/client';
+    import {
+      ReactFlow,
+      ReactFlowProvider,
+      useReactFlow,
+      Background,
+      Controls,
+      MiniMap,
+      MarkerType,
+      Handle,
+      Position,
+      getIncomers,
+      getOutgoers,
+      getConnectedEdges,
+    } from '@xyflow/react';
+    import dagre from 'dagre';
 
-    // ── Tab 1: Global Overview with Cytoscape.js ──────────────────────────
-    // Register dagre layout
-    if (typeof cytoscape !== 'undefined' && typeof cytoscapeDagre !== 'undefined') {
-      cytoscape.use(cytoscapeDagre);
-    }
+    const DATA = window.GRAPH_DATA;
 
-    const LAYER_COLORS = {
-      source:    { bg: '#D5E8D4', border: '#82B366', text: '#2d5016' },
-      ingestion: { bg: '#DAE8FC', border: '#6C8EBF', text: '#1a3a5c' },
-      bigdata:   { bg: '#FFF2CC', border: '#D6B656', text: '#5c4a00' },
-      session:   { bg: '#E1D5E7', border: '#9673A6', text: '#4a2d5c' },
-      transform: { bg: '#FFE6CC', border: '#D79B00', text: '#5c3d00' },
-      consumer:  { bg: '#F8CECC', border: '#B85450', text: '#5c1a17' },
-    };
-
-    const CY_NODES = [
-      // Sources — 標明類型、系統名、存什麼資料
-      { data: { id: 'azure_blob', label: '☁️ Azure Blob Storage\nAppInsight Continuous Export\n各 App 的原始操作 Log', layer: 'source' }, classes: 'source' },
-      { data: { id: 'azure_api', label: '☁️ Azure AppInsight API\n9 個 App 的 Custom Events\nCompanion/mvbF/mvbx 等', layer: 'source' }, classes: 'source' },
-      { data: { id: 'product_pg', label: '🐘 PostgreSQL (Read Replica)\nmyviewboard-product\n帳號/Entity/登入/訂閱/Instance', layer: 'source' }, classes: 'source' },
-      { data: { id: 'dm_pg', label: '🐘 PostgreSQL (Read Replica)\nmyviewboard-dm\nDevice Manager 裝置資料', layer: 'source' }, classes: 'source' },
-      { data: { id: 'vs_account_pg', label: '🐘 PostgreSQL\nviewsonic-account-prod\nVS Account/SSO/Entity', layer: 'source' }, classes: 'source' },
-      { data: { id: 'teamwork_pg', label: '🐘 PostgreSQL\npostgres_prod_teamwork\nBoard/Project/Team/Event', layer: 'source' }, classes: 'source' },
-      { data: { id: 'email_pg', label: '🐘 PostgreSQL\nemail-service\nCampaign/Group/Tags', layer: 'source' }, classes: 'source' },
-      { data: { id: 'salesforce_api', label: '🌐 Salesforce CRM API\nEntity 銷售關係\n客戶/機會/合約', layer: 'source' }, classes: 'source' },
-      { data: { id: 'bettermode_api', label: '🌐 Bettermode GraphQL API\n社群會員/貼文/徽章', layer: 'source' }, classes: 'source' },
-      { data: { id: 'oracle_s3', label: '📦 S3 (Oracle 匯出)\nIFP 硬體銷售資料\n型號/序號/國家', layer: 'source' }, classes: 'source' },
-      { data: { id: 'pbi_api', label: '🌐 Azure Power BI API\n報表使用記錄\n誰看了什麼報表', layer: 'source' }, classes: 'source' },
-      { data: { id: 'dynamodb', label: '🗄️ AWS DynamoDB\nEmail 發送記錄\nCampaign Action Log', layer: 'source' }, classes: 'source' },
-      // Ingestion
-      { data: { id: 'dbrix', label: 'dbrix_appinsight\n_to_s3', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'appinsight', label: 'appinsight_daily\n⚠️ Hub DAG', layer: 'ingestion' }, classes: 'ingestion hub' },
-      { data: { id: 'entity_acct', label: 'entity_account\n⚠️ retries=22', layer: 'ingestion' }, classes: 'ingestion unstable' },
-      { data: { id: 'vs_migration', label: 'viewsonic\n_migration', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'instance_rel', label: 'instance\n_relation', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'instance_android', label: 'instance_android\n_launcher', layer: 'ingestion' }, classes: 'ingestion unstable' },
-      { data: { id: 'device_rel', label: 'device\n_relation', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'subscription_dag', label: 'subscription', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'teamwork_dag', label: 'teamwork', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'salesforce_dag', label: 'salesforce', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'email_campaign_dag', label: 'email\n_campaign', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'account_rel', label: 'account\n_related', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'community_dag', label: 'community', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'oracle_dag', label: 'oracle_ifp', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'common_update', label: 'daily_common\n_data_update', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'vs_update', label: 'daily_viewsonic\n_dataset_update', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'msp_dag', label: 'msp', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'email_log_dag', label: 'email_log', layer: 'ingestion' }, classes: 'ingestion' },
-      { data: { id: 'pbi_dag', label: 'pbi_activity', layer: 'ingestion' }, classes: 'ingestion' },
-      // BigData
-      { data: { id: 'emr', label: 'emr_v2\nEMR PySpark\n13 apps ⚠️ Hub', layer: 'bigdata' }, classes: 'bigdata hub' },
-      // Session
-      { data: { id: 'esi', label: 'event_session\n_instance', layer: 'session' }, classes: 'session' },
-      { data: { id: 'esi_v3', label: 'event_session\n_instance_v3', layer: 'session' }, classes: 'session' },
-      { data: { id: 'escw', label: 'classroom\n_whiteboard', layer: 'session' }, classes: 'session' },
-      { data: { id: 'esc', label: 'event_session\n_companion', layer: 'session' }, classes: 'session' },
-      { data: { id: 'oc', label: 'original\n_content', layer: 'session' }, classes: 'session' },
-      { data: { id: 'mvbcom', label: 'myviewboard\n_com', layer: 'session' }, classes: 'session' },
-      { data: { id: 'insight_log', label: 'insight_event\n_log', layer: 'session' }, classes: 'session' },
-      // Transform
-      { data: { id: 'dbt_inst', label: 'dbt_instance', layer: 'transform' }, classes: 'transform' },
-      { data: { id: 'dbt_users', label: 'dbt_users', layer: 'transform' }, classes: 'transform' },
-      { data: { id: 'ei_migration', label: 'entity_insight\n_migration\n28表 RS→PG', layer: 'transform' }, classes: 'transform' },
-      { data: { id: 'alert_list', label: 'email_alert\n_list', layer: 'transform' }, classes: 'transform' },
-      { data: { id: 'alert_cond', label: 'email_alert\n_condition', layer: 'transform' }, classes: 'transform' },
-      { data: { id: 'sales_bench', label: 'Sales_Benchmark\n_ETL', layer: 'transform' }, classes: 'transform' },
-      { data: { id: 'tags', label: 'target_audience\n_tags (週一)', layer: 'transform' }, classes: 'transform' },
-      { data: { id: 'user_tag', label: 'user_tag_v11\n(週一)', layer: 'transform' }, classes: 'transform' },
-      { data: { id: 'canvas_hour', label: 'active_canvas\n_hour (每月)', layer: 'transform' }, classes: 'transform' },
-      { data: { id: 'oc_recommend', label: 'originals\n_recommend (每月)', layer: 'transform' }, classes: 'transform' },
-      { data: { id: 'oc_ai_tags', label: 'originals\n_ai_tags', layer: 'transform' }, classes: 'transform' },
-      // Storage
-      { data: { id: 's3_raw', label: '📦 AWS S3\nRaw Data', layer: 'consumer' }, classes: 'consumer' },
-      { data: { id: 's3_processed', label: '📦 AWS S3\nProcessed Data', layer: 'consumer' }, classes: 'consumer' },
-      // Redshift — 拆成 schema/domain
-      { data: { id: 'rs_canvas', label: '🏢 Redshift\ndatamart_canvas\nSession/Canvas 使用時長', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'rs_instance', label: '🏢 Redshift\ndatamart_instance\n裝置/Instance 統計', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'rs_users', label: '🏢 Redshift\nusers / entity\n帳號/Entity/登入', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'rs_subscription', label: '🏢 Redshift\ndatamart_subscription\n訂閱/授權', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'rs_device', label: '🏢 Redshift\ndevice_manager\n裝置資料/MAC/使用記錄', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'rs_teamwork', label: '🏢 Redshift\nteamwork_prod\nBoard/Project/Event', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'rs_oc', label: '🏢 Redshift\ndatamart_oc\n原創內容使用', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'rs_companion', label: '🏢 Redshift\ndatamart_companion\nCompanion 活動', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'rs_edla', label: '🏢 Redshift\ndatamart_edla\nEDLA Session', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'rs_sales', label: '🏢 Redshift\nsalesforce / sales\n銷售/CRM', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'rs_other', label: '🏢 Redshift\npublic / mvb\n其他共用表', layer: 'redshift' }, classes: 'redshift' },
-      { data: { id: 'savvy_pg', label: '🐘 Savvy PostgreSQL\nmyviewboard-product-orm\n⚠️ 產品 Write Endpoint', layer: 'consumer' }, classes: 'consumer' },
-      // Consumers
-      { data: { id: 'powerbi', label: '📊 Power BI\n8 workspaces\n164 reports', layer: 'consumer' }, classes: 'consumer' },
-      { data: { id: 'insight_api', label: '🌐 Entity Insight API\n(NestJS)', layer: 'consumer' }, classes: 'consumer' },
-      { data: { id: 'email_platform', label: '📧 Email Campaign\nPlatform', layer: 'consumer' }, classes: 'consumer' },
+    const LAYERS = [
+      { id: 'ingest',    label: 'Ingest (源頭)' },
+      { id: 'compute',   label: 'Compute (EMR/Spark)' },
+      { id: 'session',   label: 'Session/Event 處理' },
+      { id: 'transform', label: 'Transform (DBT)' },
+      { id: 'publish',   label: 'Publish (RS → PG)' },
+      { id: 'app',       label: 'Application 層' },
+      { id: 'util',      label: 'Utility' },
     ];
 
-    const CY_EDGES = [
-      // ── Source → Ingestion（1:1 對應）──
-      { data: { source: 'azure_blob', target: 'dbrix' } },
-      { data: { source: 'azure_api', target: 'appinsight' } },
-      { data: { source: 'product_pg', target: 'entity_acct' } },
-      { data: { source: 'product_pg', target: 'instance_rel' } },
-      { data: { source: 'product_pg', target: 'subscription_dag' } },
-      { data: { source: 'product_pg', target: 'account_rel' } },
-      { data: { source: 'product_pg', target: 'common_update' } },
-      { data: { source: 'product_pg', target: 'vs_update' } },
-      { data: { source: 'product_pg', target: 'msp_dag' } },
-      { data: { source: 'product_pg', target: 'email_log_dag' } },
-      { data: { source: 'dm_pg', target: 'instance_android' } },
-      { data: { source: 'dm_pg', target: 'device_rel' } },
-      { data: { source: 'vs_account_pg', target: 'vs_migration' } },
-      { data: { source: 'teamwork_pg', target: 'teamwork_dag' } },
-      { data: { source: 'email_pg', target: 'email_campaign_dag' } },
-      { data: { source: 'dynamodb', target: 'email_campaign_dag' } },
-      { data: { source: 'product_pg', target: 'email_campaign_dag' } },
-      { data: { source: 'salesforce_api', target: 'salesforce_dag' } },
-      { data: { source: 'bettermode_api', target: 'community_dag' } },
-      { data: { source: 'oracle_s3', target: 'oracle_dag' } },
-      { data: { source: 'pbi_api', target: 'pbi_dag' } },
-      // ── Ingestion → BigData ──
-      { data: { source: 'dbrix', target: 'emr' }, classes: 'thick' },
-      // ── 等待依賴（ExternalTaskSensor/Marker，用 depend class 標示）──
-      // appinsight_daily 完成後 → 7 個下游才開始
-      { data: { source: 'appinsight', target: 'esi', label: '等完成' }, classes: 'depend' },
-      { data: { source: 'appinsight', target: 'escw', label: '等完成' }, classes: 'depend' },
-      { data: { source: 'appinsight', target: 'esc', label: '等完成' }, classes: 'depend' },
-      { data: { source: 'appinsight', target: 'oc', label: '等完成' }, classes: 'depend' },
-      { data: { source: 'appinsight', target: 'device_rel', label: '等完成' }, classes: 'depend' },
-      { data: { source: 'appinsight', target: 'mvbcom', label: '等完成' }, classes: 'depend' },
-      { data: { source: 'appinsight', target: 'insight_log', label: '等完成' }, classes: 'depend' },
-      // emr_v2 完成後 → 4 個下游才開始
-      { data: { source: 'emr', target: 'esi', label: '等 EMR' }, classes: 'depend thick' },
-      { data: { source: 'emr', target: 'esi_v3', label: '等 EMR' }, classes: 'depend thick' },
-      { data: { source: 'emr', target: 'oc', label: '等 EMR' }, classes: 'depend' },
-      { data: { source: 'emr', target: 'teamwork_dag', label: '等 EMR' }, classes: 'depend' },
-      // instance chain
-      { data: { source: 'instance_android', target: 'instance_rel', label: '等完成' }, classes: 'depend' },
-      // → DBT Transform（等上游完成才跑 dbt）
-      { data: { source: 'instance_rel', target: 'dbt_inst', label: '等完成' }, classes: 'depend' },
-      { data: { source: 'esi', target: 'dbt_inst', label: '等完成' }, classes: 'depend' },
-      { data: { source: 'esi_v3', target: 'dbt_inst', label: '等完成' }, classes: 'depend' },
-      { data: { source: 'entity_acct', target: 'dbt_users', label: '等完成' }, classes: 'depend' },
-      { data: { source: 'vs_migration', target: 'dbt_users', label: '等完成' }, classes: 'depend' },
-      // Application layer
-      { data: { source: 'ei_migration', target: 'alert_list', label: '等 28 表完成' }, classes: 'depend' },
-      // ── 資料流向：DAG → 具體 Redshift schema ──
-      // dbrix → S3 Raw → EMR → S3 Processed
-      { data: { source: 'dbrix', target: 's3_raw' }, classes: 'thick' },
-      { data: { source: 's3_raw', target: 'emr' }, classes: 'thick' },
-      { data: { source: 'emr', target: 's3_processed' }, classes: 'thick' },
-      // Session DAG → 對應 schema
-      { data: { source: 'esi', target: 'rs_canvas' } },
-      { data: { source: 'esi_v3', target: 'rs_canvas' } },
-      { data: { source: 'escw', target: 'rs_canvas' } },
-      { data: { source: 'esc', target: 'rs_companion' } },
-      { data: { source: 'oc', target: 'rs_oc' } },
-      { data: { source: 'mvbcom', target: 'rs_other' } },
-      { data: { source: 'insight_log', target: 'rs_other' } },
-      // EMR processed → 對應 schema
-      { data: { source: 's3_processed', target: 'rs_canvas' }, classes: 'thick' },
-      { data: { source: 's3_processed', target: 'rs_device' } },
-      { data: { source: 's3_processed', target: 'rs_edla' } },
-      { data: { source: 's3_processed', target: 'rs_teamwork' } },
-      { data: { source: 's3_processed', target: 'rs_other' } },
-      // Ingestion → 對應 schema
-      { data: { source: 'entity_acct', target: 'rs_users' } },
-      { data: { source: 'vs_migration', target: 'rs_users' } },
-      { data: { source: 'account_rel', target: 'rs_users' } },
-      { data: { source: 'instance_rel', target: 'rs_instance' } },
-      { data: { source: 'instance_android', target: 'rs_instance' } },
-      { data: { source: 'device_rel', target: 'rs_device' } },
-      { data: { source: 'subscription_dag', target: 'rs_subscription' } },
-      { data: { source: 'teamwork_dag', target: 'rs_teamwork' } },
-      { data: { source: 'salesforce_dag', target: 'rs_sales' } },
-      { data: { source: 'email_campaign_dag', target: 'rs_other' } },
-      { data: { source: 'community_dag', target: 'rs_other' } },
-      { data: { source: 'oracle_dag', target: 'rs_other' } },
-      { data: { source: 'common_update', target: 'rs_other' } },
-      { data: { source: 'vs_update', target: 'rs_other' } },
-      { data: { source: 'msp_dag', target: 'rs_other' } },
-      { data: { source: 'email_log_dag', target: 'rs_other' } },
-      { data: { source: 'pbi_dag', target: 'rs_other' } },
-      { data: { source: 'appinsight', target: 'rs_other' } },
-      // DBT → 對應 schema
-      { data: { source: 'dbt_inst', target: 'rs_instance' } },
-      { data: { source: 'dbt_users', target: 'rs_users' } },
-      // Transform → 對應 schema
-      { data: { source: 'sales_bench', target: 'rs_sales' } },
-      { data: { source: 'tags', target: 'rs_users' } },
-      { data: { source: 'user_tag', target: 'rs_users' } },
-      { data: { source: 'canvas_hour', target: 'rs_canvas' } },
-      { data: { source: 'alert_cond', target: 'rs_other' } },
-      // ── Redshift schema → Power BI（全部 schema 都被 PBI 查）──
-      { data: { source: 'rs_canvas', target: 'powerbi' } },
-      { data: { source: 'rs_instance', target: 'powerbi' } },
-      { data: { source: 'rs_users', target: 'powerbi' } },
-      { data: { source: 'rs_subscription', target: 'powerbi' } },
-      { data: { source: 'rs_device', target: 'powerbi' } },
-      { data: { source: 'rs_teamwork', target: 'powerbi' } },
-      { data: { source: 'rs_oc', target: 'powerbi' } },
-      { data: { source: 'rs_companion', target: 'powerbi' } },
-      { data: { source: 'rs_sales', target: 'powerbi' } },
-      { data: { source: 'rs_other', target: 'powerbi' } },
-      // ── Redshift schema → entity_insight_migration（讀特定 schema）──
-      { data: { source: 'rs_canvas', target: 'ei_migration' } },
-      { data: { source: 'rs_instance', target: 'ei_migration' } },
-      { data: { source: 'rs_users', target: 'ei_migration' } },
-      { data: { source: 'rs_subscription', target: 'ei_migration' } },
-      { data: { source: 'rs_device', target: 'ei_migration' } },
-      { data: { source: 'rs_edla', target: 'ei_migration' } },
-      { data: { source: 'rs_teamwork', target: 'ei_migration' } },
-      { data: { source: 'rs_oc', target: 'ei_migration' } },
-      { data: { source: 'rs_companion', target: 'ei_migration' } },
-      // ── ei_migration / alert_list → Savvy PG ──
-      { data: { source: 'ei_migration', target: 'savvy_pg' } },
-      { data: { source: 'alert_list', target: 'savvy_pg' } },
-      // ── Savvy PG → API ──
-      { data: { source: 'savvy_pg', target: 'insight_api' } },
-      // ── 不經過 Redshift 的 DAG ──
-      { data: { source: 'oc_ai_tags', target: 'rs_oc' } },
-      { data: { source: 'oc_recommend', target: 'email_platform' } },
-      { data: { source: 'tags', target: 'email_platform' } },
-    ];
+    // Layout with dagre — put connected graph on left, isolated nodes as grid on the right
+    function layoutGraph(nodes, edges) {
+      const NW = 200, NH = 60;
+      const withEdges = new Set();
+      edges.forEach(e => { withEdges.add(e.source); withEdges.add(e.target); });
+      const connected = nodes.filter(n => withEdges.has(n.id));
+      const isolated = nodes.filter(n => !withEdges.has(n.id));
 
-    // Cytoscape stylesheet
-    const CY_STYLE = [
-      { selector: 'node', style: {
-        'label': 'data(label)', 'text-wrap': 'wrap', 'text-valign': 'center', 'text-halign': 'center',
-        'font-size': '11px', 'font-family': 'system-ui, sans-serif', 'width': '140', 'height': '60',
-        'shape': 'roundrectangle', 'padding': '8px',
-      }},
-      { selector: 'node.source', style: { 'background-color': '#D5E8D4', 'border-color': '#82B366', 'border-width': 2, 'color': '#2d5016', 'width': '200', 'height': '80', 'font-size': '10px' }},
-      { selector: 'node.ingestion', style: { 'background-color': '#DAE8FC', 'border-color': '#6C8EBF', 'border-width': 2, 'color': '#1a3a5c' }},
-      { selector: 'node.bigdata', style: { 'background-color': '#FFF2CC', 'border-color': '#D6B656', 'border-width': 2, 'color': '#5c4a00', 'width': '160', 'height': '70' }},
-      { selector: 'node.session', style: { 'background-color': '#E1D5E7', 'border-color': '#9673A6', 'border-width': 2, 'color': '#4a2d5c' }},
-      { selector: 'node.transform', style: { 'background-color': '#FFE6CC', 'border-color': '#D79B00', 'border-width': 2, 'color': '#5c3d00' }},
-      { selector: 'node.redshift', style: { 'background-color': '#D4E6F1', 'border-color': '#2E86C1', 'border-width': 2, 'color': '#1a3a5c', 'width': '180', 'height': '70', 'font-size': '10px', 'shape': 'barrel' }},
-      { selector: 'node.consumer', style: { 'background-color': '#F8CECC', 'border-color': '#B85450', 'border-width': 2, 'color': '#5c1a17', 'width': '180', 'height': '70', 'font-size': '10px' }},
-      { selector: 'node.hub', style: { 'border-color': '#FF0000', 'border-width': 4, 'font-weight': 'bold' }},
-      { selector: 'node.unstable', style: { 'border-color': '#FF6600', 'border-width': 3, 'border-style': 'dashed' }},
-      { selector: 'edge', style: {
-        'width': 1.5, 'line-color': '#aaa', 'target-arrow-color': '#aaa', 'target-arrow-shape': 'triangle',
-        'curve-style': 'taxi', 'taxi-direction': 'rightward', 'taxi-turn': '60px',
-        'arrow-scale': 0.8, 'opacity': 0.5,
-      }},
-      { selector: 'edge.thick', style: { 'width': 3, 'line-color': '#666', 'target-arrow-color': '#666', 'opacity': 0.8 }},
-      { selector: 'edge.depend', style: { 'line-color': '#E53935', 'target-arrow-color': '#E53935', 'line-style': 'dashed', 'width': 2, 'opacity': 0.8, 'label': 'data(label)', 'font-size': '8px', 'color': '#E53935', 'text-rotation': 'autorotate', 'text-margin-y': -8 }},
-      { selector: 'edge.depend.thick', style: { 'width': 3 }},
-      { selector: 'node:active', style: { 'overlay-color': '#4fc3f7', 'overlay-opacity': 0.2 }},
-      // Highlight styles
-      { selector: 'node.dimmed', style: { 'opacity': 0.15 }},
-      { selector: 'edge.dimmed', style: { 'opacity': 0.08 }},
-      { selector: 'node.highlighted', style: { 'opacity': 1, 'border-width': 5, 'border-color': '#FF4081', 'shadow-blur': 12, 'shadow-color': '#FF4081', 'shadow-opacity': 0.5, 'z-index': 999 }},
-      { selector: 'edge.highlighted', style: { 'opacity': 1, 'width': 4, 'line-color': '#FF4081', 'target-arrow-color': '#FF4081', 'z-index': 999 }},
-      { selector: 'node.highlighted-upstream', style: { 'opacity': 1, 'border-width': 4, 'border-color': '#2196F3', 'z-index': 998 }},
-      { selector: 'node.highlighted-downstream', style: { 'opacity': 1, 'border-width': 4, 'border-color': '#FF9800', 'z-index': 998 }},
-      { selector: 'edge.highlighted-upstream', style: { 'opacity': 1, 'width': 3, 'line-color': '#2196F3', 'target-arrow-color': '#2196F3', 'line-style': 'solid', 'z-index': 998 }},
-      { selector: 'edge.highlighted-downstream', style: { 'opacity': 1, 'width': 3, 'line-color': '#FF9800', 'target-arrow-color': '#FF9800', 'line-style': 'solid', 'z-index': 998 }},
-    ];
+      const g = new dagre.graphlib.Graph();
+      g.setGraph({ rankdir: 'LR', nodesep: 50, ranksep: 140, marginx: 20, marginy: 20, ranker: 'network-simplex' });
+      g.setDefaultEdgeLabel(() => ({}));
+      connected.forEach(n => g.setNode(n.id, { width: NW, height: NH }));
+      edges.forEach(e => g.setEdge(e.source, e.target));
+      dagre.layout(g);
 
-    const LAYER_LABELS = {
-      source:    { name: '🟢 資料來源',        bg: '#D5E8D4', border: '#82B366', text: '#2d5016' },
-      ingestion: { name: '🔵 資料擷取',        bg: '#DAE8FC', border: '#6C8EBF', text: '#1a3a5c' },
-      bigdata:   { name: '🟠 大數據處理',      bg: '#FFF2CC', border: '#D6B656', text: '#5c4a00' },
-      session:   { name: '🟣 Session/事件',     bg: '#E1D5E7', border: '#9673A6', text: '#4a2d5c' },
-      transform: { name: '🟤 DBT/應用層',      bg: '#FFE6CC', border: '#D79B00', text: '#5c3d00' },
-      redshift:  { name: '🏢 Redshift Schema', bg: '#D4E6F1', border: '#2E86C1', text: '#1a3a5c' },
-      consumer:  { name: '🔴 消費端/Storage',  bg: '#F8CECC', border: '#B85450', text: '#5c1a17' },
-    };
+      let maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      connected.forEach(n => {
+        const { x, y } = g.node(n.id);
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      });
 
-    // Cytoscape canvas — memo'd so React state changes don't destroy it
-    const CyCanvas = React.memo(function CyCanvas({ onNodeTap, onBgTap, cyRefOut }) {
-      const containerRef = React.useRef(null);
-
-      React.useEffect(() => {
-        if (!containerRef.current || typeof cytoscape === 'undefined') return;
-
-        const cy = cytoscape({
-          container: containerRef.current,
-          elements: [...CY_NODES, ...CY_EDGES],
-          style: CY_STYLE,
-          layout: { name: 'dagre', rankDir: 'LR', nodeSep: 50, rankSep: 120, edgeSep: 20, ranker: 'tight-tree', spacingFactor: 1.2 },
-          minZoom: 0.2, maxZoom: 3, wheelSensitivity: 0.2,
-        });
-
-        if (cyRefOut) cyRefOut.current = cy;
-
-        const groupByLayer = (nodes) => {
-          const groups = {};
-          nodes.forEach(n => {
-            const cls = n.classes().find(c => c in LAYER_LABELS) || 'other';
-            if (!groups[cls]) groups[cls] = [];
-            groups[cls].push({ id: n.data('id'), label: (n.data('label') || '').replace(/\n/g, ' ') });
-          });
-          return groups;
+      const positioned = connected.map(n => {
+        const { x, y } = g.node(n.id);
+        return {
+          ...n,
+          position: { x: x - NW / 2, y: y - NH / 2 },
+          sourcePosition: 'right',
+          targetPosition: 'left',
         };
+      });
 
-        cy.on('tap', 'node', function(e) {
-          const node = e.target;
-          cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed').addClass('dimmed');
-          const upstream = node.predecessors();
-          const downstream = node.successors();
-          node.removeClass('dimmed').addClass('highlighted');
-          upstream.nodes().removeClass('dimmed').addClass('highlighted-upstream');
-          upstream.edges().removeClass('dimmed').addClass('highlighted-upstream');
-          downstream.nodes().removeClass('dimmed').addClass('highlighted-downstream');
-          downstream.edges().removeClass('dimmed').addClass('highlighted-downstream');
+      // Grid isolated nodes to the right, sorted by layer
+      const layerOrder = { ingest: 0, compute: 1, session: 2, transform: 3, publish: 4, app: 5, util: 6 };
+      const sortedIsolated = [...isolated].sort((a, b) => {
+        const la = layerOrder[a.data.layer] ?? 99;
+        const lb = layerOrder[b.data.layer] ?? 99;
+        if (la !== lb) return la - lb;
+        return a.id.localeCompare(b.id);
+      });
 
-          onNodeTap({
-            node: { id: node.data('id'), label: (node.data('label') || '').replace(/\n/g, ' ') },
-            upstream: groupByLayer(upstream.nodes()),
-            downstream: groupByLayer(downstream.nodes()),
-            upstreamCount: upstream.nodes().length,
-            downstreamCount: downstream.nodes().length,
-          });
-        });
+      const cols = 3;
+      const gridStartX = (maxX === -Infinity ? 0 : maxX) + 160;
+      const gridStartY = (minY === Infinity ? 0 : minY);
+      const cellW = NW + 30;
+      const cellH = NH + 20;
 
-        cy.on('tap', function(e) {
-          if (e.target === cy) {
-            cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed');
-            onBgTap();
-          }
-        });
+      const isolatedPositioned = sortedIsolated.map((n, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        return {
+          ...n,
+          position: { x: gridStartX + col * cellW, y: gridStartY + row * cellH },
+          sourcePosition: 'right',
+          targetPosition: 'left',
+        };
+      });
 
-        cy.on('mouseover', 'node', () => { containerRef.current.style.cursor = 'pointer'; });
-        cy.on('mouseout', 'node', () => { containerRef.current.style.cursor = 'default'; });
-        cy.on('layoutstop', () => { cy.fit(cy.elements(), 40); });
+      return [...positioned, ...isolatedPositioned];
+    }
 
-        return () => { cy.destroy(); };
-      }, []);
+    function buildBase() {
+      const nodes = DATA.nodes.map(d => ({
+        id: d.id,
+        data: { ...d, label: d.id },
+        type: 'default',
+      }));
+      const edgeCounter = {};
+      const edges = DATA.edges.map((e, i) => {
+        const key = e.source + '->' + e.target;
+        edgeCounter[key] = (edgeCounter[key] || 0) + 1;
+        return {
+          id: `e${i}-${e.source}-${e.target}-${edgeCounter[key]}`,
+          source: e.source,
+          target: e.target,
+          data: e,
+          type: 'smoothstep',
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#475569', width: 20, height: 20 },
+          animated: false,
+        };
+      });
+      return { nodes, edges };
+    }
 
-      return <div ref={containerRef} style={{ flex: 1, height: 'calc(100vh - 200px)', minHeight: '600px', background: '#fafafa' }} />;
-    });
-
-    function OverviewTab() {
-      const cyRef = React.useRef(null);
-      const [searchText, setSearchText] = React.useState('');
-      const [searchResults, setSearchResults] = React.useState([]);
-      const [selectedInfo, setSelectedInfo] = React.useState(null);
-
-      const handleNodeTap = React.useCallback((info) => { setSelectedInfo(info); }, []);
-      const handleBgTap = React.useCallback(() => { setSelectedInfo(null); }, []);
-
-      const handleSearch = React.useCallback((text) => {
-        setSearchText(text);
-        const cy = cyRef.current;
-        if (!cy || !text.trim()) { setSearchResults([]); return; }
-        const q = text.toLowerCase().replace(/[_\s]/g, '');
-        const matched = cy.nodes().filter(n => {
-          const label = (n.data('label') || '').toLowerCase().replace(/[_\s\n]/g, '');
-          const id = (n.data('id') || '').toLowerCase().replace(/[_\s]/g, '');
-          return label.includes(q) || id.includes(q);
-        });
-        setSearchResults(matched.map(n => ({ id: n.data('id'), label: n.data('label').replace(/\n/g, ' ') })));
-      }, []);
-
-      const focusNode = React.useCallback((nodeId) => {
-        const cy = cyRef.current;
-        if (!cy) return;
-        const node = cy.getElementById(nodeId);
-        if (!node || node.empty()) return;
-        cy.elements().removeClass('highlighted highlighted-upstream highlighted-downstream dimmed').addClass('dimmed');
-        node.removeClass('dimmed').addClass('highlighted');
-        node.predecessors().nodes().removeClass('dimmed').addClass('highlighted-upstream');
-        node.predecessors().edges().removeClass('dimmed').addClass('highlighted-upstream');
-        node.successors().nodes().removeClass('dimmed').addClass('highlighted-downstream');
-        node.successors().edges().removeClass('dimmed').addClass('highlighted-downstream');
-        cy.animate({ center: { eles: node }, zoom: 1.2 }, { duration: 400 });
-        setSearchResults([]); setSearchText('');
-      }, []);
-
-      return (
-        <div className="overview-card">
-          <div className="overview-card-header" style={{ justifyContent: 'space-between' }}>
-            <h2 className="overview-card-title">全局 DAG 依賴關係圖</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  value={searchText}
-                  onChange={e => handleSearch(e.target.value)}
-                  placeholder="搜尋節點（如 emr、appinsight）..."
-                  style={{ padding: '6px 12px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13, width: 240, fontFamily: 'inherit' }}
-                />
-                {searchResults.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #ddd', borderRadius: '0 0 4px 4px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
-                    {searchResults.map(r => (
-                      <div key={r.id} onClick={() => focusNode(r.id)}
-                        style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f0f0f0', fontFamily: 'monospace' }}
-                        onMouseOver={e => e.target.style.background = '#e3f2fd'}
-                        onMouseOut={e => e.target.style.background = 'white'}
-                      >
-                        {r.label}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <span style={{ fontSize: 12, color: '#999' }}>滾輪縮放 ｜ 拖曳平移 ｜ 點擊 highlight</span>
-            </div>
-          </div>
-          <div className="overview-legend">
-            {[
-              { bg: "#D5E8D4", border: "#82B366", label: "資料來源 (Sources)" },
-              { bg: "#DAE8FC", border: "#6C8EBF", label: "資料擷取 Layer 1" },
-              { bg: "#FFF2CC", border: "#D6B656", label: "大數據處理 Layer 2" },
-              { bg: "#E1D5E7", border: "#9673A6", label: "Session 計算 Layer 3" },
-              { bg: "#FFE6CC", border: "#D79B00", label: "DBT + 應用層 Layer 4-5" },
-              { bg: "#D4E6F1", border: "#2E86C1", label: "Redshift Schema" },
-              { bg: "#F8CECC", border: "#B85450", label: "消費端" },
-            ].map(item => (
-              <div key={item.label} className="legend-item">
-                <div style={{ width: 16, height: 16, borderRadius: 3, backgroundColor: item.bg, border: `2px solid ${item.border}`, flexShrink: 0 }} />
-                <span>{item.label}</span>
-              </div>
-            ))}
-            <div className="legend-item">
-              <div style={{ width: 16, height: 16, borderRadius: 3, backgroundColor: "#FFF2CC", border: "3px solid #FF0000", flexShrink: 0 }} />
-              <span>Hub DAG (高影響)</span>
-            </div>
-            <div className="legend-item">
-              <div style={{ width: 16, height: 16, borderRadius: 3, backgroundColor: "#DAE8FC", border: "2px dashed #FF6600", flexShrink: 0 }} />
-              <span>不穩定 DAG</span>
-            </div>
-            <div className="legend-item">
-              <div style={{ width: 24, height: 0, borderTop: '2px dashed #E53935', flexShrink: 0 }} />
-              <span style={{ color: '#E53935' }}>等待依賴</span>
-            </div>
-            <div className="legend-item">
-              <div style={{ width: 24, height: 0, borderTop: '2px solid #aaa', flexShrink: 0 }} />
-              <span>資料流向</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', borderTop: '1px solid #eee' }}>
-            <CyCanvas onNodeTap={handleNodeTap} onBgTap={handleBgTap} cyRefOut={cyRef} />
-            <div style={{ width: 300, borderLeft: '1px solid #ddd', background: '#fff', overflowY: 'auto', height: 'calc(100vh - 200px)', fontSize: 13, flexShrink: 0 }}>
-              {!selectedInfo ? (
-                <div style={{ padding: 32, textAlign: 'center', color: '#bbb' }}>
-                  <div style={{ fontSize: 36, marginBottom: 12 }}>👆</div>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>點擊節點查看上下游</div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>點擊圖上任一節點，<br/>這裡會顯示完整的<br/>上游和下游清單</div>
-                </div>
-              ) : (
-                <div>
-                  <div style={{ padding: '12px 16px', background: '#1a1a2e', color: 'white', position: 'sticky', top: 0, zIndex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedInfo.node.label}</div>
-                    <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{selectedInfo.node.id}</div>
-                  </div>
-
-                  {selectedInfo.upstreamCount > 0 && (
-                    <div>
-                      <div style={{ padding: '8px 16px', background: '#E3F2FD', fontWeight: 600, fontSize: 12, color: '#1565C0', position: 'sticky', top: 50, zIndex: 1 }}>
-                        🔵 上游（{selectedInfo.upstreamCount} 個節點）
-                      </div>
-                      {Object.entries(selectedInfo.upstream).map(([layer, nodes]) => {
-                        const lc = LAYER_LABELS[layer] || { name: layer, bg: '#f5f5f5', text: '#666' };
-                        return (
-                        <div key={layer}>
-                          <div style={{ padding: '6px 16px', background: lc.bg, fontSize: 11, fontWeight: 600, color: lc.text, borderLeft: `4px solid ${lc.border || lc.text}` }}>
-                            {lc.name} ({nodes.length})
-                          </div>
-                          {nodes.map(n => (
-                            <div key={n.id}
-                              onClick={() => { const cy = cyRef.current; if(cy) { cy.animate({ center: { eles: cy.getElementById(n.id) }, zoom: 1.5 }, { duration: 300 }); } }}
-                              style={{ padding: '5px 16px 5px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333', borderLeft: `4px solid ${lc.border || '#ddd'}` }}
-                              onMouseOver={e => e.currentTarget.style.background = lc.bg}
-                              onMouseOut={e => e.currentTarget.style.background = 'white'}
-                            >
-                              {n.label}
-                            </div>
-                          ))}
-                        </div>
-                      ); })}
-                    </div>
-                  )}
-
-                  {selectedInfo.downstreamCount > 0 && (
-                    <div>
-                      <div style={{ padding: '8px 16px', background: '#FFF3E0', fontWeight: 600, fontSize: 12, color: '#E65100', position: 'sticky', top: 50, zIndex: 1 }}>
-                        🟠 下游（{selectedInfo.downstreamCount} 個節點）
-                      </div>
-                      {Object.entries(selectedInfo.downstream).map(([layer, nodes]) => {
-                        const lc = LAYER_LABELS[layer] || { name: layer, bg: '#f5f5f5', text: '#666' };
-                        return (
-                        <div key={layer}>
-                          <div style={{ padding: '6px 16px', background: lc.bg, fontSize: 11, fontWeight: 600, color: lc.text, borderLeft: `4px solid ${lc.border || lc.text}` }}>
-                            {lc.name} ({nodes.length})
-                          </div>
-                          {nodes.map(n => (
-                            <div key={n.id}
-                              onClick={() => { const cy = cyRef.current; if(cy) { cy.animate({ center: { eles: cy.getElementById(n.id) }, zoom: 1.5 }, { duration: 300 }); } }}
-                              style={{ padding: '5px 16px 5px 24px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', color: '#333', borderLeft: `4px solid ${lc.border || '#ddd'}` }}
-                              onMouseOver={e => e.currentTarget.style.background = lc.bg}
-                              onMouseOut={e => e.currentTarget.style.background = 'white'}
-                            >
-                              {n.label}
-                            </div>
-                          ))}
-                        </div>
-                      ); })}
-                    </div>
-                  )}
-
-                  {selectedInfo.upstreamCount === 0 && selectedInfo.downstreamCount === 0 && (
-                    <div style={{ padding: 16, color: '#999', textAlign: 'center' }}>此節點無上下游</div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+    function DagNode({ data, selected }) {
+      const cls = ['rf-node', 'layer-' + (data.layer || 'util')];
+      if (data.__selected) cls.push('selected');
+      if (data.__upstream) cls.push('upstream');
+      if (data.__downstream) cls.push('downstream');
+      if (data.__dimmed) cls.push('dimmed');
+      if (data.paused) cls.push('paused');
+      return React.createElement('div', { className: cls.join(' ') },
+        React.createElement(Handle, {
+          type: 'target',
+          position: Position.Left,
+          style: { background: '#94a3b8', width: 8, height: 8, border: 'none' },
+          isConnectable: false,
+        }),
+        React.createElement('div', { className: 'rf-node-label' }, data.id),
+        React.createElement('div', { className: 'rf-node-meta' },
+          data.schedule ? data.schedule : 'manual'
+        ),
+        React.createElement(Handle, {
+          type: 'source',
+          position: Position.Right,
+          style: { background: '#94a3b8', width: 8, height: 8, border: 'none' },
+          isConnectable: false,
+        }),
       );
     }
 
-    // Keep old OVERVIEW_CHART for reference but don't use it
-    const OVERVIEW_CHART = `graph LR
-  subgraph Sources["🟢 資料來源"]
-    azure_blob["Azure Blob Storage"]
-    azure_api["Azure AppInsight API<br/>(9 apps)"]
-    product_pg["Product PG<br/>(myviewboard-product)"]
-    dm_pg["DM PG<br/>(myviewboard-dm)"]
-    vs_account_pg["VS Account PG"]
-    teamwork_pg["Teamwork PG"]
-    email_pg["Email Service PG"]
-    salesforce_api["Salesforce API"]
-    bettermode_api["Bettermode API"]
-    oracle_s3["Oracle IFP (S3)"]
-    pbi_api["Power BI API"]
-  end
+    // Force React Flow to use handles from default type by using type: 'default'
+    // (default node has source/target handles built-in). We override rendering via nodeTypes below.
+    const nodeTypes = { dagNode: DagNode };
 
-  subgraph Ingestion["🔵 資料擷取 (Layer 1)"]
-    dbrix["dbrix_appinsight_to_s3"]
-    appinsight["appinsight_daily<br/>⚠️ Hub DAG"]
-    entity_acct["entity_account<br/>⚠️ retries=22"]
-    vs_migration["viewsonic_migration"]
-    instance_rel["instance_relation"]
-    instance_android["instance_android_launcher<br/>_device_entity"]
-    device_rel["device_relation"]
-    subscription_dag["subscription"]
-    teamwork_dag["teamwork"]
-    salesforce_dag["salesforce"]
-    email_campaign_dag["email_campaign"]
-    account_rel["account_related"]
-    community_dag["community"]
-    oracle_dag["oracle_ifp"]
-    common_update["daily_common_data_update"]
-    vs_update["daily_viewsonic_dataset_update"]
-    msp_dag["msp"]
-    email_log_dag["email_log"]
-    pbi_dag["pbi_activity"]
-  end
-
-  subgraph BigData["🟠 大數據處理 (Layer 2)"]
-    emr["emr_v2<br/>EMR PySpark 13 apps<br/>⚠️ Hub DAG"]
-  end
-
-  subgraph SessionCalc["🟣 Session/事件計算 (Layer 3)"]
-    esi["event_session_instance"]
-    esi_v3["event_session_instance_v3"]
-    escw["event_session_classroom<br/>_whiteboard"]
-    esc["event_session_companion"]
-    oc["original_content"]
-    mvbcom["myviewboard_com"]
-    insight_log["entity_insight_prod<br/>_to_insight_event_log"]
-  end
-
-  subgraph Transform["🟤 DBT + 應用層 (Layer 4-5)"]
-    dbt_inst["dags_dbt_instance"]
-    dbt_users["dags_dbt_users"]
-    ei_migration["entity_insight_migration<br/>28表 RS→Savvy PG"]
-    alert_list["email_alert_list"]
-    alert_cond["email_alert_condition"]
-    sales_bench["Sales_Benchmark_ETL"]
-    oc_recommend["originals_recommend<br/>(每月1日)"]
-    oc_ai_tags["originals_ai_tags"]
-    tags["target_audience_tags<br/>(週一)"]
-    user_tag["user_tag_v11<br/>(週一)"]
-    canvas_hour["active_canvas_hour<br/>(每月1日)"]
-  end
-
-  subgraph Consumers["🔴 消費端"]
-    redshift[("Redshift")]
-    powerbi["Power BI<br/>164 reports"]
-    insight_api["Entity Insight API<br/>(NestJS)"]
-    email_platform["Email Campaign<br/>Platform"]
-  end
-
-  azure_blob --> dbrix
-  azure_api --> appinsight
-  product_pg --> entity_acct
-  product_pg --> instance_rel
-  product_pg --> subscription_dag
-  product_pg --> account_rel
-  product_pg --> common_update
-  product_pg --> vs_update
-  product_pg --> msp_dag
-  product_pg --> email_log_dag
-  dm_pg --> instance_android
-  dm_pg --> device_rel
-  vs_account_pg --> vs_migration
-  teamwork_pg --> teamwork_dag
-  email_pg --> email_campaign_dag
-  salesforce_api --> salesforce_dag
-  bettermode_api --> community_dag
-  oracle_s3 --> oracle_dag
-  pbi_api --> pbi_dag
-
-  dbrix --> emr
-  appinsight --> esi
-  appinsight --> escw
-  appinsight --> esc
-  appinsight --> oc
-  appinsight --> device_rel
-  appinsight --> mvbcom
-  appinsight --> insight_log
-  emr --> esi
-  emr --> esi_v3
-  emr --> oc
-  emr --> teamwork_dag
-  instance_android --> instance_rel
-
-  instance_rel --> dbt_inst
-  esi --> dbt_inst
-  esi_v3 --> dbt_inst
-  entity_acct --> dbt_users
-  vs_migration --> dbt_users
-  ei_migration --> alert_list
-
-  dbrix --> redshift
-  appinsight --> redshift
-  entity_acct --> redshift
-  vs_migration --> redshift
-  instance_rel --> redshift
-  instance_android --> redshift
-  device_rel --> redshift
-  subscription_dag --> redshift
-  teamwork_dag --> redshift
-  salesforce_dag --> redshift
-  email_campaign_dag --> redshift
-  account_rel --> redshift
-  community_dag --> redshift
-  oracle_dag --> redshift
-  common_update --> redshift
-  vs_update --> redshift
-  msp_dag --> redshift
-  email_log_dag --> redshift
-  pbi_dag --> redshift
-  emr --> redshift
-  esi --> redshift
-  esi_v3 --> redshift
-  escw --> redshift
-  esc --> redshift
-  oc --> redshift
-  mvbcom --> redshift
-  insight_log --> redshift
-  dbt_inst --> redshift
-  dbt_users --> redshift
-  sales_bench --> redshift
-  tags --> redshift
-  user_tag --> redshift
-  canvas_hour --> redshift
-
-  redshift --> powerbi
-  ei_migration --> insight_api
-  alert_list --> insight_api
-  tags --> email_platform
-
-  classDef sourceStyle fill:#D5E8D4,stroke:#82B366,color:#333
-  classDef ingestionStyle fill:#DAE8FC,stroke:#6C8EBF,color:#333
-  classDef bigdataStyle fill:#FFF2CC,stroke:#D6B656,color:#333
-  classDef sessionStyle fill:#E1D5E7,stroke:#9673A6,color:#333
-  classDef transformStyle fill:#FFE6CC,stroke:#D79B00,color:#333
-  classDef consumerStyle fill:#F8CECC,stroke:#B85450,color:#333
-  classDef hubDag fill:#FFF2CC,stroke:#FF0000,stroke-width:3px,color:#333
-  classDef unstableDag fill:#DAE8FC,stroke:#FF6600,stroke-width:2px,stroke-dasharray:6 3,color:#333
-
-  class azure_blob,azure_api,product_pg,dm_pg,vs_account_pg,teamwork_pg,email_pg,salesforce_api,bettermode_api,oracle_s3,pbi_api sourceStyle
-  class dbrix,vs_migration,instance_rel,device_rel,subscription_dag,teamwork_dag,salesforce_dag,email_campaign_dag,account_rel,community_dag,oracle_dag,common_update,vs_update,msp_dag,email_log_dag,pbi_dag ingestionStyle
-  class appinsight hubDag
-  class emr hubDag
-  class entity_acct unstableDag
-  class instance_android unstableDag
-  class esi,esi_v3,escw,esc,oc,mvbcom,insight_log sessionStyle
-  alert_cond --> redshift
-  oc_recommend --> redshift
-  oc_ai_tags --> redshift
-
-  class dbt_inst,dbt_users,ei_migration,alert_list,alert_cond,sales_bench,tags,user_tag,canvas_hour,oc_recommend,oc_ai_tags transformStyle
-  class redshift,powerbi,insight_api,email_platform consumerStyle
-`;
-
-    // ── DAG name list (43 entries) ─────────────────────────────────────────
-    const DAG_NAMES = [
-      "dbrix_appinsight_to_s3",
-      "appinsight_daily",
-      "emr_v2",
-      "event_session_instance",
-      "event_session_instance_v3",
-      "event_session_classroom_whiteboard",
-      "event_session_companion",
-      "original_content",
-      "myviewboard_com",
-      "entity_insight_prod_to_insight_event_log",
-      "entity_account",
-      "viewsonic_migration",
-      "instance_relation",
-      "instance_android_launcher_device_entity",
-      "device_relation",
-      "subscription",
-      "teamwork",
-      "salesforce",
-      "email_campaign",
-      "account_related",
-      "community",
-      "oracle_ifp",
-      "daily_common_data_update",
-      "daily_viewsonic_dataset_update",
-      "msp",
-      "email_log",
-      "pbi_activity",
-      "dags_dbt_instance",
-      "dags_dbt_users",
-      "entity_insight_migration",
-      "email_alert_list",
-      "email_alert_condition",
-      "Sales_Benchmark_ETL",
-      "target_audience_tags",
-      "user_tag_v11",
-      "active_canvas_hour",
-      "originals_recommend",
-      "originals_ai_tags",
-      "oc_modified_daily_monitor",
-      "event_tool_map",
-      "entity_insight_stage_migration",
-      "manual_rerun",
-      "dbt_demo_dag"
-    ];
-
-    // ── Tab definitions ────────────────────────────────────────────────────
-    const TABS = [
-      { id: "overview",       label: "全局總覽" },
-      { id: "schedule",       label: "排程時間軸" },
-      { id: "dag-detail",     label: "DAG 詳細" },
-      { id: "powerbi",        label: "Power BI 影響" },
-      { id: "entity-insight", label: "Entity Insight" },
-    ];
-
-    // ── MermaidChart component ─────────────────────────────────────────────
-    function MermaidChart({ chart }) {
-      const containerRef = React.useRef(null);
-      const [error, setError] = React.useState(null);
-
-      React.useEffect(() => {
-        if (!containerRef.current) return;
-
-        let cancelled = false;
-        const chartId = "mermaid-chart-" + Date.now();
-
-        mermaid.render(chartId, chart)
-          .then(({ svg }) => {
-            if (!cancelled && containerRef.current) {
-              containerRef.current.innerHTML = svg;
-              setError(null);
-            }
-          })
-          .catch((err) => {
-            if (!cancelled) {
-              setError(String(err));
-            }
-          });
-
-        return () => { cancelled = true; };
-      }, [chart]);
-
-      if (error) {
-        return <div className="mermaid-error">Mermaid render error:{"\n"}{error}</div>;
-      }
-
-      return <div ref={containerRef} />;
-    }
-
-    // ── Tab 1: Overview ────────────────────────────────────────────────────
-    const LEGEND_ITEMS = [
-      { color: "#D5E8D4", label: "資料來源 (Sources)" },
-      { color: "#DAE8FC", label: "資料擷取 Layer 1" },
-      { color: "#FFF2CC", label: "大數據處理 Layer 2" },
-      { color: "#E1D5E7", label: "Session 計算 Layer 3" },
-      { color: "#FFE6CC", label: "DBT + 應用層 Layer 4-5" },
-      { color: "#D4E6F1", label: "Redshift Schema" },
-      { color: "#F8CECC", label: "消費端" },
-    ];
-
-    // Old Mermaid OverviewTab removed — replaced by Cytoscape version above
-
-    // ── Placeholder component ──────────────────────────────────────────────
-    function Placeholder({ icon, title, badge }) {
-      return (
-        <div className="placeholder-card">
-          <div className="placeholder-icon">{icon}</div>
-          <div className="placeholder-title">{title}</div>
-          <div className="placeholder-badge">{badge || "開發中"}</div>
-        </div>
-      );
-    }
-
-    // ── Tab 3: DAG Detail Content (right panel) ────────────────────────────
-    function DagDetailContent({ dagId }) {
-      const dag = (typeof DAG_DATA !== 'undefined' ? DAG_DATA : []).find(d => d.id === dagId);
-      if (!dag) {
-        return (
-          <div className="dag-detail-content">
-            <h2 className="dag-detail-title">{dagId}</h2>
-            <p style={{ color: "#999" }}>此 DAG 尚無詳細資料</p>
-          </div>
+    function DetailPanel({ node, onSelect, edges }) {
+      if (!node) {
+        return React.createElement('div', { className: 'detail-empty' },
+          '點擊左邊的 node 看詳細資料',
+          React.createElement('br'),
+          React.createElement('br'),
+          '搜尋: 輸入 dag_id / owner / 表名'
         );
       }
+      const d = node.data;
+      const upstreamEdges = edges.filter(e => e.target === node.id);
+      const downstreamEdges = edges.filter(e => e.source === node.id);
 
-      return (
-        <div className="dag-detail-content">
-          <div className="dag-detail-header">
-            <h2 className="dag-detail-title">{dag.id}</h2>
-            <p className="dag-detail-summary">{dag.summary}</p>
-          </div>
+      const link = 'https://github.com/vs-jim-hc-chang/data-dag-doc';
+      const airflow = `https://airflow.myviewboard.cloud/dags/${d.id}/grid`;
 
-          <div className="dag-info-cards">
-            <div className="dag-info-card">
-              <label>排程</label>
-              <div className="value">{dag.schedule}</div>
-            </div>
-            <div className="dag-info-card">
-              <label>負責人</label>
-              <div className="value">{dag.owner}</div>
-            </div>
-            <div className="dag-info-card">
-              <label>穩定度</label>
-              <div className="value">{dag.stability}</div>
-            </div>
-            <div className="dag-info-card">
-              <label>資料延遲</label>
-              <div className="value">{dag.delay}</div>
-            </div>
-          </div>
-
-          {(dag.source || dag.target) && (
-            <div className="dag-section">
-              <h3>資料流向</h3>
-              <div className="dag-flow-row">
-                {dag.source && <div className="dag-flow-label">{dag.source}</div>}
-                {dag.source && dag.target && <span className="dag-flow-arrow">→</span>}
-                {dag.target && <div className="dag-flow-label" style={{ background: "#fff3e0", color: "#e65100" }}>{dag.target}</div>}
-              </div>
-            </div>
-          )}
-
-          <div className="dag-info-cards">
-            {dag.volume && <div className="dag-info-card"><label>資料量級</label><div className="value">{dag.volume}</div></div>}
-            {dag.retention && <div className="dag-info-card"><label>資料保留策略</label><div className="value">{dag.retention}</div></div>}
-            {dag.sla && <div className="dag-info-card"><label>SLA</label><div className="value">{dag.sla}</div></div>}
-            {dag.audience && <div className="dag-info-card"><label>給誰用</label><div className="value">{dag.audience}</div></div>}
-          </div>
-
-          {(dag.pii || dag.dbCoupling || dag.failureReasons || dag.crossCloud) && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "12px 0" }}>
-              {dag.pii && dag.pii.includes("⚠️") && (
-                <div style={{ background: "#FCE4EC", padding: "8px 12px", borderRadius: 6, fontSize: 13, color: "#C62828", flex: 1, minWidth: 200 }}>
-                  <strong>PII 敏感度</strong><br/>{dag.pii}
-                </div>
-              )}
-              {dag.pii && !dag.pii.includes("⚠️") && dag.pii !== "無" && dag.pii !== "無直接 PII" && (
-                <div style={{ background: "#FFF3E0", padding: "8px 12px", borderRadius: 6, fontSize: 13, color: "#E65100", flex: 1, minWidth: 200 }}>
-                  <strong>PII 敏感度</strong><br/>{dag.pii}
-                </div>
-              )}
-              {dag.dbCoupling && dag.dbCoupling.includes("⚠️") && (
-                <div style={{ background: "#FFF3E0", padding: "8px 12px", borderRadius: 6, fontSize: 13, color: "#E65100", flex: 1, minWidth: 200 }}>
-                  <strong>外部 DB 耦合</strong><br/>{dag.dbCoupling}
-                </div>
-              )}
-              {dag.crossCloud && (
-                <div style={{ background: "#E3F2FD", padding: "8px 12px", borderRadius: 6, fontSize: 13, color: "#1565C0", flex: 1, minWidth: 200 }}>
-                  <strong>跨雲</strong><br/>此 DAG 涉及 Azure ↔ AWS 跨雲資料傳輸
-                </div>
-              )}
-              {dag.failureReasons && dag.failureReasons !== "—" && (
-                <div style={{ background: "#F5F5F5", padding: "8px 12px", borderRadius: 6, fontSize: 13, color: "#555", flex: 1, minWidth: 200 }}>
-                  <strong>常見失敗原因</strong><br/>{dag.failureReasons}
-                </div>
-              )}
-            </div>
-          )}
-
-          {dag.mermaidChart && (
-            <div className="dag-section">
-              <h3>內部流程圖</h3>
-              <div className="dag-mermaid-wrap">
-                <MermaidChart chart={dag.mermaidChart} key={dag.id} />
-              </div>
-            </div>
-          )}
-
-          {dag.description && (
-            <div className="dag-section">
-              <h3>詳細說明</h3>
-              <div className="dag-description">{dag.description}</div>
-            </div>
-          )}
-
-          {dag.pbiImpact && (
-            <div className="dag-section">
-              <h3>Power BI 影響範圍</h3>
-              <div className="pbi-impact">{dag.pbiImpact}</div>
-            </div>
-          )}
-        </div>
+      return React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'detail-header' },
+          React.createElement('h2', null, d.id),
+          React.createElement('div', { className: 'detail-badges' },
+            d.schedule && React.createElement('span', { className: 'badge badge-schedule' }, d.schedule),
+            !d.schedule && React.createElement('span', { className: 'badge badge-schedule' }, 'manual'),
+            d.owner && React.createElement('span', { className: 'badge badge-owner' }, d.owner),
+            React.createElement('span', { className: 'badge' }, d.layer),
+            d.paused && React.createElement('span', { className: 'badge badge-paused' }, 'PAUSED'),
+          ),
+          d.paused_reason && React.createElement('div', { className: 'detail-value', style: { marginTop: 8, fontSize: 11, color: '#b91c1c' } }, d.paused_reason),
+        ),
+        React.createElement('div', { className: 'detail-section' },
+          React.createElement('div', { className: 'detail-label' }, 'File'),
+          React.createElement('div', { className: 'detail-value' },
+            React.createElement('code', null, d.file)
+          ),
+          React.createElement('div', { style: { marginTop: 6 } },
+            React.createElement('a', { href: airflow, target: '_blank', style: { fontSize: 11, color: '#0284c7', marginRight: 12 } }, 'Airflow ↗'),
+          )
+        ),
+        React.createElement('div', { className: 'detail-section' },
+          React.createElement('div', { className: 'detail-label' }, 'Flow'),
+          React.createElement('div', { className: 'flow-arrow' }, d.flow)
+        ),
+        React.createElement('div', { className: 'detail-section' },
+          React.createElement('div', { className: 'detail-label' }, `Source (${d.sources.length})`),
+          React.createElement('ul', { className: 'detail-list' },
+            d.sources.map((s, i) => React.createElement('li', { key: i }, s))
+          )
+        ),
+        React.createElement('div', { className: 'detail-section' },
+          React.createElement('div', { className: 'detail-label' }, `Destination (${d.destinations.length})`),
+          React.createElement('ul', { className: 'detail-list' },
+            d.destinations.map((s, i) => React.createElement('li', { key: i }, s))
+          )
+        ),
+        React.createElement('div', { className: 'detail-section' },
+          React.createElement('div', { className: 'detail-label' }, `Upstream 等 (${upstreamEdges.length})`),
+          upstreamEdges.length === 0
+            ? React.createElement('div', { className: 'detail-value', style: { color: '#94a3b8' } }, '(無 — 源頭 DAG)')
+            : upstreamEdges.map((e, i) => React.createElement('div', {
+                key: i,
+                className: 'dep-item',
+                onClick: () => onSelect(e.source),
+              },
+                React.createElement('div', { style: { flex: 1 } },
+                  React.createElement('span', { className: 'dep-name' }, e.source),
+                  React.createElement('span', { className: 'dep-meta' },
+                    React.createElement('span', {
+                      className: e.data.dep_type === 'ExternalTaskMarker' ? 'dep-type-marker' : 'dep-type-sensor'
+                    }, e.data.dep_type),
+                    ' · ', e.data.external_task
+                  )
+                )
+              ))
+        ),
+        React.createElement('div', { className: 'detail-section' },
+          React.createElement('div', { className: 'detail-label' }, `Downstream 誰等我 (${downstreamEdges.length})`),
+          downstreamEdges.length === 0
+            ? React.createElement('div', { className: 'detail-value', style: { color: '#94a3b8' } }, '(無)')
+            : downstreamEdges.map((e, i) => React.createElement('div', {
+                key: i,
+                className: 'dep-item',
+                onClick: () => onSelect(e.target),
+              },
+                React.createElement('div', { style: { flex: 1 } },
+                  React.createElement('span', { className: 'dep-name' }, e.target),
+                  React.createElement('span', { className: 'dep-meta' },
+                    React.createElement('span', {
+                      className: e.data.dep_type === 'ExternalTaskMarker' ? 'dep-type-marker' : 'dep-type-sensor'
+                    }, e.data.dep_type),
+                    ' · ', e.data.external_task
+                  )
+                )
+              ))
+        )
       );
     }
 
-    // ── Tab 3: DAG Detail ──────────────────────────────────────────────────
-    function DagDetailTab() {
-      const [search, setSearch] = React.useState("");
-      const [selected, setSelected] = React.useState(null);
-
-      const filtered = DAG_NAMES.filter(name =>
-        name.toLowerCase().includes(search.toLowerCase())
-      );
-
-      return (
-        <div className="dag-detail-layout">
-          {/* Left Panel */}
-          <div className="dag-list-panel">
-            <div className="dag-list-header">
-              <h3>DAG 列表</h3>
-              <input
-                className="dag-search-input"
-                type="text"
-                placeholder="搜尋 DAG 名稱..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-              <div className="dag-list-count">
-                顯示 {filtered.length} / {DAG_NAMES.length} 個 DAG
-              </div>
-            </div>
-
-            <div className="dag-list-scroll">
-              {filtered.length === 0 ? (
-                <div className="dag-list-empty">找不到符合的 DAG</div>
-              ) : (
-                filtered.map(name => (
-                  <div
-                    key={name}
-                    className={`dag-list-item${selected === name ? " selected" : ""}`}
-                    onClick={() => setSelected(name)}
-                  >
-                    {name}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Right Panel */}
-          <div className="dag-detail-panel">
-            {selected ? (
-              <DagDetailContent dagId={selected} key={selected} />
-            ) : (
-              <div className="dag-detail-empty-wrap">
-                <div className="dag-detail-empty">
-                  <div className="dag-detail-empty-icon">📋</div>
-                  <div className="dag-detail-empty-text">請選擇一個 DAG</div>
-                  <div className="dag-detail-empty-sub">從左側列表點選以查看詳細資訊</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+    function Legend() {
+      return React.createElement('div', { className: 'legend' },
+        React.createElement('div', { className: 'legend-title' }, 'Layer'),
+        ...LAYERS.map(l => React.createElement('div', { key: l.id, className: 'legend-item' },
+          React.createElement('span', { className: `legend-swatch layer-${l.id}` }),
+          l.label
+        )),
+        React.createElement('div', { className: 'legend-note' },
+          '綠框 = upstream · 橘框 = downstream · 藍框 = 選中'
+        )
       );
     }
 
-    // ── Tab 2: Schedule Timeline ─────────────────────────────────────────
-    const SCHEDULE_CHART = `gantt
-  title DAG 每日排程時間軸（UTC）
-  dateFormat HH:mm
-  axisFormat %H:%M
-
-  section 跨雲搬運
-  dbrix_appinsight_to_s3          :a1, 00:05, 30min
-  emr_v2 (13 apps PySpark)        :a2, after a1, 60min
-
-  section 帳號/Entity
-  entity_account (retries=22)     :crit, b1, 00:00, 60min
-  viewsonic_migration             :b2, 00:00, 30min
-  msp                             :b3, 00:00, 15min
-  community                       :b4, 00:00, 15min
-
-  section 裝置/Instance
-  instance_android_launcher       :c1, 00:20, 30min
-  instance_relation               :c2, 00:20, 40min
-  daily_common_data_update        :c3, 00:20, 15min
-  daily_viewsonic_dataset_update  :c4, 00:20, 15min
-
-  section AppInsight 抓取
-  appinsight_daily (9 apps)       :crit, d1, 00:30, 45min
-
-  section Session 計算
-  event_session_instance          :e1, after d1, 60min
-  event_session_instance_v3       :e2, after a2, 45min
-  event_session_classroom_wb      :e3, after d1, 30min
-  event_session_companion         :e4, after d1, 30min
-  original_content                :e5, after d1, 45min
-  myviewboard_com                 :e6, after d1, 20min
-
-  section 其他擷取
-  subscription                    :f1, 00:10, 15min
-  teamwork                        :f2, 00:05, 60min
-  salesforce                      :f3, 00:30, 15min
-  device_relation                 :f4, 00:30, 30min
-  oracle_ifp                      :f5, 00:30, 10min
-  account_related                 :f6, 00:30, 30min
-  insight_event_log               :f7, after d1, 15min
-
-  section DBT 轉換
-  dags_dbt_users                  :g1, after b1, 30min
-  dags_dbt_instance               :g2, after e1, 30min
-
-  section 應用層
-  Sales_Benchmark_ETL             :h1, 01:00, 30min
-  email_campaign                  :h2, 01:15, 30min
-  email_log                       :h3, 02:00, 20min
-  entity_insight_migration (28表) :crit, h4, 03:00, 60min
-  email_alert_list                :h5, after h4, 20min
-  pbi_activity                    :h6, 04:00, 20min
-  active_canvas_hour (每月1日)    :h7, 04:30, 30min
-`;
-
-    function ScheduleTab() {
-      return (
-        <div className="overview-card">
-          <div className="overview-card-header">
-            <h2 className="overview-card-title">DAG 排程時間軸（每日 UTC 00:00 ~ 05:00）</h2>
-          </div>
-          <div className="overview-legend">
-            <div className="legend-item">
-              <div className="legend-dot" style={{ background: "#ff6b6b" }} />
-              <span>Critical Path（紅色）</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot" style={{ background: "#4ecdc4" }} />
-              <span>一般 DAG</span>
-            </div>
-            <div className="legend-item" style={{ marginLeft: "auto", fontSize: 13, color: "#e65100", fontWeight: 600 }}>
-              預計 ~05:00 UTC 全部完成
-            </div>
-          </div>
-          <div className="mermaid-container">
-            <MermaidChart chart={SCHEDULE_CHART} />
-          </div>
-        </div>
-      );
-    }
-
-    // ── Tab 4: Power BI Impact ───────────────────────────────────────────
-    const PBI_IMPACT_DATA = [
-      { dag: "event_session_instance", owner: "Vance", count: 25, reports: "Canvas Analysis, Instance Snapshot, Instance Usage Trend, Entity Canvas Activity, Weekly Snapshot, All Service Snapshot, myViewBoard 2.0 Canvas Growth YoY, myViewBoard 3.0 Analysis" },
-      { dag: "entity_account", owner: "Shan", count: 22, reports: "User Snapshot and Analysis, Entity Snapshot, Global Sales Snapshot, Entity Evaluation Model, Entity Segmentation, Entity User Update Monitor, User and Entity Monthly Snapshot" },
-      { dag: "salesforce", owner: "Jackie", count: 15, reports: "sales (x6), Global Sales Snapshot, Entity Snapshot, USA Benchmark, MSP Onboarding/Certification, Manager Monetization" },
-      { dag: "device_relation", owner: "Shan", count: 14, reports: "Device Manager Snapshot/Usage, Entity Launched Device Trend, Hardware Installation/Version, Manager Active Device Snapshot" },
-      { dag: "subscription", owner: "Shan", count: 10, reports: "Entity Subscription, Premium Feature, Manager Monetization, Manager Subscription Churn, Subscribed User Snapshot" },
-      { dag: "emr_v2", owner: "Jackie", count: 10, reports: "vlauncher, AirSync, EDLA Analysis, IFP Activity Report (間接影響更多)" },
-      { dag: "teamwork", owner: "Jackie", count: 8, reports: "TeamOne Beta User Activity/Entity/AI Feature, TeamOne Monthly Report, TeamOne Campaign Conversion" },
-      { dag: "myviewboard_com", owner: "Jackie", count: 8, reports: "Web Tool Usage, Landing Page, myViewBoard Site Snapshot/Entity Analysis" },
-      { dag: "original_content", owner: "Shan", count: 7, reports: "Original Content Usage/Site/Analysis, Entity Original Content Activity, OC on Whiteboard" },
-      { dag: "event_session_companion", owner: "Shan", count: 6, reports: "Companion Snapshot, Whiteboard and Companion Analysis, Entity myViewBoard and Companion Analysis" },
-    ];
-
-    const PBI_WORKSPACE_STATS = [
-      { name: "myViewBoard Insight", total: 78, active: 15, stale: 26, dead: 37 },
-      { name: "myViewBoard Regional Insight", total: 14, active: 12, stale: 1, dead: 1 },
-      { name: "myViewBoard Sales Insight", total: 17, active: 13, stale: 2, dead: 2 },
-      { name: "myViewBoard PM workspace", total: 22, active: 20, stale: 2, dead: 0 },
-      { name: "DiPS", total: 5, active: 3, stale: 1, dead: 1 },
-      { name: "Product Service Insight", total: 21, active: 19, stale: 1, dead: 1 },
-      { name: "Hardware workspace", total: 1, active: 1, stale: 0, dead: 0 },
-      { name: "Report Insight", total: 6, active: 4, stale: 2, dead: 0 },
-    ];
-
-    function PowerBITab() {
-      return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div className="overview-card">
-            <div className="overview-card-header">
-              <h2 className="overview-card-title">DAG 故障 → Power BI 報表影響範圍</h2>
-            </div>
-            <div style={{ padding: 24 }}>
-              <p style={{ color: "#666", fontSize: 14, margin: "0 0 16px" }}>
-                以下列出影響 Power BI 報表數量最多的 10 個 DAG。當這些 DAG 故障時，對應的報表將無法更新。
-              </p>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-                <thead>
-                  <tr style={{ background: "#f5f5f5", textAlign: "left" }}>
-                    <th style={{ padding: "10px 12px", borderBottom: "2px solid #ddd" }}>DAG</th>
-                    <th style={{ padding: "10px 12px", borderBottom: "2px solid #ddd" }}>負責人</th>
-                    <th style={{ padding: "10px 12px", borderBottom: "2px solid #ddd", textAlign: "center" }}>影響報表數</th>
-                    <th style={{ padding: "10px 12px", borderBottom: "2px solid #ddd" }}>代表性報表</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {PBI_IMPACT_DATA.map((row, i) => (
-                    <tr key={row.dag} style={{ background: i % 2 === 0 ? "white" : "#fafafa" }}>
-                      <td style={{ padding: "10px 12px", borderBottom: "1px solid #eee", fontFamily: "monospace", fontWeight: 600 }}>{row.dag}</td>
-                      <td style={{ padding: "10px 12px", borderBottom: "1px solid #eee" }}>{row.owner}</td>
-                      <td style={{ padding: "10px 12px", borderBottom: "1px solid #eee", textAlign: "center" }}>
-                        <span style={{ background: row.count >= 20 ? "#FFCDD2" : row.count >= 10 ? "#FFF9C4" : "#C8E6C9", padding: "2px 10px", borderRadius: 12, fontWeight: 600 }}>
-                          ~{row.count}
-                        </span>
-                      </td>
-                      <td style={{ padding: "10px 12px", borderBottom: "1px solid #eee", fontSize: 13, color: "#666" }}>{row.reports}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="overview-card">
-            <div className="overview-card-header">
-              <h2 className="overview-card-title">Power BI Workspace 健康狀態</h2>
-            </div>
-            <div style={{ padding: 24 }}>
-              <p style={{ color: "#666", fontSize: 14, margin: "0 0 16px" }}>
-                綠色 = 2026 年有刷新（活躍），黃色 = 2024-2025 刷新（可能閒置），紅色 = 從未刷新或 2023 前（建議刪除）
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-                {PBI_WORKSPACE_STATS.map(ws => (
-                  <div key={ws.name} style={{ background: "#f8f9fa", borderRadius: 8, padding: 16, minWidth: 240, flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>{ws.name}</div>
-                    <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>{ws.total} <span style={{ fontSize: 13, fontWeight: 400, color: "#999" }}>reports</span></div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <span style={{ background: "#C8E6C9", padding: "2px 8px", borderRadius: 10, fontSize: 12 }}>{ws.active} 活躍</span>
-                      <span style={{ background: "#FFF9C4", padding: "2px 8px", borderRadius: 10, fontSize: 12 }}>{ws.stale} 閒置</span>
-                      <span style={{ background: "#FFCDD2", padding: "2px 8px", borderRadius: 10, fontSize: 12 }}>{ws.dead} 建議刪除</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ background: "#FFF3E0", borderRadius: 8, padding: 16, fontSize: 14, color: "#E65100" }}>
-            <strong>⚠️ 告警機制現況：</strong>目前沒有任何 DAG 設定 on_failure_callback。DAG 失敗時不會自動通知任何人，只能靠手動檢查 Airflow UI。
-          </div>
-        </div>
-      );
-    }
-
-    // ── Tab 5: Entity Insight ───────────────────────────────────────────
-    const EI_FLOW_CHART = `graph TD
-  subgraph RS["Redshift（資料來源）"]
-    rs1["datamart.entity_canvas_summary_info_*"]
-    rs2["datamart.overview_daily_download"]
-    rs3["datamart.users_daily_login"]
-    rs4["datamart_edla.edla_session_usage_all_time_v"]
-    rs5["users.user_lastest_role_all_time_mv"]
-    rs6["instance.launcher_device_entity"]
-    rs7["datamart.daco_entity_account_v"]
-    rs8["...其他 20+ views"]
-  end
-
-  subgraph DAG["entity_insight_migration<br/>每天 03:00 UTC｜28 張表循序執行"]
-    query["Step 1: 查詢 Redshift"]
-    enrich["Step 2: Snapshot 表補 id + modify_at"]
-    check["Step 3: 空值檢查"]
-    upload["Step 4: 上傳 CSV 到 S3"]
-    load["Step 5: 載入 Savvy PG"]
-    sub_clean["Step 6: Subscription 特殊處理"]
-  end
-
-  subgraph S3["AWS S3（中繼站）"]
-    s3file["mvb-datamart/{year}/{month}/filename_{date}.csv"]
-  end
-
-  subgraph Strategy["三種載入策略"]
-    snap["🔴 Snapshot（4 表）<br/>DELETE ALL → INSERT"]
-    roll["🟡 Rolling 90（13 表）<br/>DELETE today + 90天前 → INSERT today"]
-    daily["🟢 Daily（11 表）<br/>DELETE today → INSERT today"]
-  end
-
-  subgraph PG["Savvy PostgreSQL<br/>⚠️ 產品 DB write endpoint"]
-    savvy["savvy schema（27 表）"]
-    daco["daco schema（1 表）"]
-  end
-
-  subgraph Consumer["消費端"]
-    api["Entity Insight API<br/>（NestJS）"]
-    alert["email_alert_list DAG"]
-    frontend["Entity Insight<br/>前端 Dashboard"]
-  end
-
-  RS --> query --> enrich --> check --> upload --> S3
-  S3 --> load --> Strategy
-  snap --> PG
-  roll --> PG
-  daily --> PG
-  sub_clean -.-> PG
-  savvy --> api
-  daco --> api
-  api --> frontend
-  DAG --> alert
-
-  style snap fill:#FFCDD2,stroke:#B71C1C
-  style roll fill:#FFF9C4,stroke:#F57F17
-  style daily fill:#C8E6C9,stroke:#2E7D32
-  style PG fill:#FFE0B2,stroke:#E65100
-`;
-
-    const EI_SNAPSHOT_TABLES = [
-      { table: "savvy.entity_latest_device_status", desc: "Entity 最新裝置狀態" },
-      { table: "savvy.account_profession_mapping", desc: "帳號職業對照" },
-      { table: "savvy.entity_device_launcher_activity_latest", desc: "裝置 launcher 最新活動" },
-      { table: "daco.entity_account", desc: "Entity 帳號（daco schema）" },
-    ];
-
-    const EI_ROLLING_TABLES = [
-      { table: "savvy.entity_overview_total_user_90", desc: "Entity 用戶總覽" },
-      { table: "savvy.entity_canvas_summary_info_90", desc: "Canvas 摘要" },
-      { table: "savvy.entity_users_daily_login_90", desc: "用戶每日登入" },
-      { table: "savvy.entity_classroom_summary_90", desc: "Classroom 摘要" },
-      { table: "savvy.entity_daily_manager_action_90", desc: "Manager 每日操作" },
-      { table: "savvy.entity_original_content_download_90", desc: "OC 下載" },
-      { table: "savvy.original_content_download_90", desc: "OC 下載明細" },
-      { table: "savvy.entity_device_launcher_app_daily_activity_90", desc: "Launcher App 活動" },
-      { table: "savvy.entity_whiteboard_tool_activity_log_90", desc: "Whiteboard 工具活動" },
-      { table: "savvy.entity_manager_broadcast_activity_90", desc: "Broadcast 活動" },
-      { table: "savvy.entity_launcher_daily_login_activity_90", desc: "Launcher 每日登入" },
-      { table: "savvy.entity_teamone_daily_activity_90", desc: "TeamOne 每日活動" },
-      { table: "savvy.entity_teamone_daily_group_90", desc: "TeamOne 群組活動" },
-    ];
-
-    const EI_DAILY_TABLES = [
-      { table: "savvy.entity_canvas_summary_info", desc: "Canvas 摘要（每日）" },
-      { table: "savvy.entity_instance_daily_launch", desc: "設備每日啟動" },
-      { table: "savvy.entity_overview_daily_download", desc: "每日下載總覽" },
-      { table: "savvy.entity_users_daily_login", desc: "用戶每日登入" },
-      { table: "savvy.entity_users_daily_signup", desc: "用戶每日註冊" },
-      { table: "savvy.entity_device_daily_activity", desc: "裝置每日活動" },
-      { table: "savvy.entity_subscription_summary", desc: "訂閱摘要" },
-      { table: "savvy.entity_companion_activity_log", desc: "Companion 活動" },
-      { table: "savvy.device_usage_time", desc: "裝置使用時長" },
-      { table: "savvy.entity_user_login_count_daily", desc: "用戶登入次數" },
-      { table: "savvy.entity_instance_launch_log_daily", desc: "設備啟動記錄" },
-    ];
-
-    function TableList({ title, color, bgColor, tables, strategy }) {
-      return (
-        <div style={{ background: bgColor, borderRadius: 8, padding: 16, marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: 15, color }}>{title}（{tables.length} 張表）</h3>
-          <p style={{ margin: "0 0 12px", fontSize: 13, color: "#666" }}>{strategy}</p>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${color}` }}>表名</th>
-                <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: `2px solid ${color}` }}>說明</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tables.map(t => (
-                <tr key={t.table}>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #eee", fontFamily: "monospace", fontSize: 12 }}>{t.table}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #eee" }}>{t.desc}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
-    function EntityInsightTab() {
-      return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div className="overview-card">
-            <div className="overview-card-header">
-              <h2 className="overview-card-title">Entity Insight Migration 完整流程</h2>
-            </div>
-            <div className="overview-legend">
-              <div className="legend-item"><div className="legend-dot" style={{ background: "#FFCDD2" }} /><span>Snapshot：全量刷新（4 表）</span></div>
-              <div className="legend-item"><div className="legend-dot" style={{ background: "#FFF9C4" }} /><span>Rolling 90：滾動 90 天（13 表）</span></div>
-              <div className="legend-item"><div className="legend-dot" style={{ background: "#C8E6C9" }} /><span>Daily：每日追加（11 表）</span></div>
-            </div>
-            <div className="mermaid-container">
-              <MermaidChart chart={EI_FLOW_CHART} />
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 16, fontSize: 14 }}>
-            <div style={{ flex: 1, background: "#FFF3E0", borderRadius: 8, padding: 16, color: "#E65100" }}>
-              <strong>⚠️ 非 Atomic</strong><br/>DELETE 和 INSERT 之間有 5-30 秒空窗期，期間 API 查詢可能拿到不完整資料
-            </div>
-            <div style={{ flex: 1, background: "#FCE4EC", borderRadius: 8, padding: 16, color: "#C62828" }}>
-              <strong>⚠️ 產品 DB Write Endpoint</strong><br/>Savvy PG = myviewboard-product-orm-prod，寫錯資料會直接影響線上 Entity Insight Dashboard
-            </div>
-            <div style={{ flex: 1, background: "#E3F2FD", borderRadius: 8, padding: 16, color: "#1565C0" }}>
-              <strong>排程資訊</strong><br/>每天 03:00 UTC｜28 張表循序執行｜Owner: Vance｜retries=1, delay=5min
-            </div>
-          </div>
-
-          <div className="overview-card">
-            <div className="overview-card-header">
-              <h2 className="overview-card-title">28 張表明細</h2>
-            </div>
-            <div style={{ padding: 24 }}>
-              <TableList title="🔴 Snapshot（全量刷新）" color="#B71C1C" bgColor="#FFF5F5" tables={EI_SNAPSHOT_TABLES} strategy="DELETE ALL → INSERT。API 查詢不帶日期條件的表。" />
-              <TableList title="🟡 Rolling 90（滾動 90 天）" color="#F57F17" bgColor="#FFFDE7" tables={EI_ROLLING_TABLES} strategy="DELETE today + DELETE 90天前 → INSERT today。API 查詢帶日期範圍的表。" />
-              <TableList title="🟢 Daily（每日追加）" color="#2E7D32" bgColor="#F1F8E9" tables={EI_DAILY_TABLES} strategy="DELETE today → INSERT today。冪等重跑。" />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ── Tab content router ─────────────────────────────────────────────────
-    function TabContent({ activeTab }) {
-      switch (activeTab) {
-        case "overview":
-          return <OverviewTab />;
-
-        case "schedule":
-          return <ScheduleTab />;
-
-        case "dag-detail":
-          return <DagDetailTab />;
-
-        case "powerbi":
-          return <PowerBITab />;
-
-        case "entity-insight":
-          return <EntityInsightTab />;
-
-        default:
-          return null;
-      }
-    }
-
-    // ── Root App ───────────────────────────────────────────────────────────
     function App() {
-      const [activeTab, setActiveTab] = React.useState("overview");
+      const base = useMemo(() => buildBase(), []);
+      const layouted = useMemo(() => layoutGraph(base.nodes, base.edges), [base]);
+      const [selectedId, setSelectedId] = useState(null);
+      const [search, setSearch] = useState('');
+      const rf = useReactFlow();
 
-      return (
-        <>
-          {/* Header */}
-          <header className="header">
-            <div className="header-title">
-              Data Team <span>DAG</span> 架構總覽
-            </div>
-            <nav className="tab-nav">
-              {TABS.map(tab => (
-                <button
-                  key={tab.id}
-                  className={`tab-btn${activeTab === tab.id ? " active" : ""}`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </header>
+      const matchIds = useMemo(() => {
+        if (!search.trim()) return null;
+        const q = search.trim().toLowerCase();
+        return new Set(DATA.nodes.filter(n => {
+          const hay = [
+            n.id, n.owner || '', n.layer || '', n.file || '', n.flow || '',
+            ...(n.sources || []), ...(n.destinations || [])
+          ].join(' ').toLowerCase();
+          return hay.includes(q);
+        }).map(n => n.id));
+      }, [search]);
 
-          {/* Content */}
-          <main className={activeTab === "dag-detail" ? "" : "content-wrapper"}>
-            {activeTab !== "dag-detail" ? (
-              <TabContent activeTab={activeTab} />
-            ) : (
-              <div style={{ padding: "24px", maxWidth: "1400px", margin: "0 auto" }}>
-                <TabContent activeTab={activeTab} />
-              </div>
-            )}
-          </main>
-        </>
+      // Compute related ids for highlight
+      const related = useMemo(() => {
+        if (!selectedId) return { up: new Set(), down: new Set() };
+        const up = new Set();
+        const down = new Set();
+        // BFS upstream
+        let frontier = [selectedId];
+        while (frontier.length) {
+          const next = [];
+          for (const id of frontier) {
+            base.edges.filter(e => e.target === id && !up.has(e.source)).forEach(e => {
+              up.add(e.source);
+              next.push(e.source);
+            });
+          }
+          frontier = next;
+        }
+        // BFS downstream
+        frontier = [selectedId];
+        while (frontier.length) {
+          const next = [];
+          for (const id of frontier) {
+            base.edges.filter(e => e.source === id && !down.has(e.target)).forEach(e => {
+              down.add(e.target);
+              next.push(e.target);
+            });
+          }
+          frontier = next;
+        }
+        return { up, down };
+      }, [selectedId, base.edges]);
+
+      const nodes = useMemo(() => {
+        return layouted.map(n => {
+          const isSel = selectedId === n.id;
+          const isUp = related.up.has(n.id);
+          const isDown = related.down.has(n.id);
+          const searchHit = matchIds ? matchIds.has(n.id) : true;
+          const dimmed = (!!selectedId && !isSel && !isUp && !isDown) || (matchIds && !searchHit);
+          return {
+            ...n,
+            type: 'dagNode',
+            data: {
+              ...n.data,
+              __selected: isSel,
+              __upstream: isUp,
+              __downstream: isDown,
+              __dimmed: dimmed,
+            },
+          };
+        });
+      }, [layouted, selectedId, related, matchIds]);
+
+      const edges = useMemo(() => {
+        return base.edges.map(e => {
+          const involved = selectedId && (e.source === selectedId || e.target === selectedId);
+          const upEdge = selectedId && related.up.has(e.source) && (related.up.has(e.target) || e.target === selectedId);
+          const downEdge = selectedId && related.down.has(e.target) && (related.down.has(e.source) || e.source === selectedId);
+          const cls = [];
+          if (upEdge) cls.push('upstream-edge');
+          else if (downEdge) cls.push('downstream-edge');
+          else if (selectedId && !involved) cls.push('dimmed');
+          let markerColor = '#475569';
+          if (upEdge) markerColor = '#059669';
+          else if (downEdge) markerColor = '#f59e0b';
+          const showLabel = involved || (!selectedId && false);
+          return {
+            ...e,
+            className: cls.join(' '),
+            markerEnd: { type: MarkerType.ArrowClosed, color: markerColor, width: 20, height: 20 },
+            label: showLabel ? e.data.external_task.split(' -> ').pop() : undefined,
+            labelBgPadding: [4, 2],
+            labelBgBorderRadius: 3,
+            labelBgStyle: { fill: 'white', fillOpacity: 0.95, stroke: markerColor, strokeWidth: 0.5 },
+            labelStyle: { fill: markerColor, fontSize: 10, fontFamily: 'SF Mono, Consolas, monospace' },
+          };
+        });
+      }, [base.edges, selectedId, related]);
+
+      const selectedNode = selectedId ? nodes.find(n => n.id === selectedId) : null;
+
+      const onNodeClick = useCallback((_, node) => {
+        setSelectedId(node.id);
+      }, []);
+
+      const onPaneClick = useCallback(() => {
+        setSelectedId(null);
+      }, []);
+
+      const selectById = useCallback((id) => {
+        setSelectedId(id);
+        // Focus on node
+        const n = layouted.find(x => x.id === id);
+        if (n && rf) {
+          rf.setCenter(n.position.x + 100, n.position.y + 30, { zoom: 1.2, duration: 400 });
+        }
+      }, [layouted, rf]);
+
+      // Auto-focus first search match
+      useEffect(() => {
+        if (matchIds && matchIds.size > 0 && rf) {
+          const nodesToFit = layouted.filter(n => matchIds.has(n.id));
+          if (nodesToFit.length > 0) {
+            rf.fitView({ nodes: nodesToFit.map(n => ({ id: n.id })), padding: 0.2, duration: 400 });
+          }
+        }
+      }, [matchIds, rf, layouted]);
+
+      const stats = `${DATA.nodes.length} DAGs · ${DATA.edges.length} edges` +
+        (matchIds ? ` · ${matchIds.size} match` : '');
+
+      return React.createElement(React.Fragment, null,
+        React.createElement('header', { className: 'header' },
+          React.createElement('div', { className: 'header-title' },
+            'Data Team ', React.createElement('span', null, 'DAG'), ' 依賴圖'
+          ),
+          React.createElement('div', { className: 'search-box' },
+            React.createElement('input', {
+              className: 'search-input',
+              placeholder: '搜尋 dag_id / owner / 表名 / schema…',
+              value: search,
+              onChange: e => setSearch(e.target.value),
+            }),
+            search && React.createElement('button', {
+              className: 'search-clear',
+              onClick: () => setSearch(''),
+            }, '×')
+          ),
+          React.createElement('button', {
+            className: 'reset-btn',
+            onClick: () => { setSelectedId(null); setSearch(''); rf?.fitView({ padding: 0.2, duration: 400 }); }
+          }, 'Reset'),
+          React.createElement('div', { className: 'stats' }, stats),
+        ),
+        React.createElement('div', { className: 'main' },
+          React.createElement('div', { className: 'graph-area' },
+            React.createElement(ReactFlow, {
+              nodes,
+              edges,
+              nodeTypes,
+              onNodeClick,
+              onPaneClick,
+              fitView: true,
+              fitViewOptions: { padding: 0.2 },
+              nodesDraggable: false,
+              nodesConnectable: false,
+              elementsSelectable: true,
+              minZoom: 0.2,
+              maxZoom: 2,
+              proOptions: { hideAttribution: true },
+            },
+              React.createElement(Background, { color: '#cbd5e1', gap: 20 }),
+              React.createElement(Controls, { showInteractive: false }),
+              React.createElement(MiniMap, {
+                nodeColor: n => {
+                  const l = n.data?.layer;
+                  return {
+                    ingest: '#86efac', compute: '#fdba74', session: '#93c5fd',
+                    transform: '#c4b5fd', publish: '#fca5a5', app: '#67e8f9', util: '#cbd5e1'
+                  }[l] || '#cbd5e1';
+                },
+                maskColor: 'rgba(240,244,248,0.6)',
+                pannable: true,
+                zoomable: true,
+              }),
+            ),
+            React.createElement(Legend),
+          ),
+          React.createElement('aside', { className: 'detail-panel' },
+            React.createElement(DetailPanel, {
+              node: selectedNode,
+              onSelect: selectById,
+              edges: base.edges,
+            })
+          ),
+        )
       );
     }
 
-    // ── Mount ──────────────────────────────────────────────────────────────
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    function Root() {
+      return React.createElement(ReactFlowProvider, null, React.createElement(App));
+    }
+
+    createRoot(document.getElementById('root')).render(React.createElement(Root));
   </script>
 </body>
 </html>
