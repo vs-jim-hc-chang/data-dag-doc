@@ -19,7 +19,7 @@ window.GRAPH_DATA = {
         "azure_app_insights"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -40,7 +40,7 @@ window.GRAPH_DATA = {
         "azure_app_insights"
       ],
       "dest_resources": [
-        "s3"
+        "s3_datalake_hive"
       ]
     },
     {
@@ -59,11 +59,11 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3 Raw] --> [EMR PySpark] --> [S3 Processed] --> [Redshift COPY]",
       "source_resources": [
-        "s3",
+        "s3_datalake_hive",
         "pg_edla"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -82,7 +82,7 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3] --> [EC2 Python session cut] --> [Redshift]",
       "source_resources": [
-        "s3"
+        "s3_datamart"
       ],
       "dest_resources": [
         "redshift"
@@ -102,7 +102,7 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3] --> [EC2 Python session cut] --> [Redshift]",
       "source_resources": [
-        "s3"
+        "s3_datamart"
       ],
       "dest_resources": [
         "redshift"
@@ -122,7 +122,7 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3] --> [EC2 Python] --> [Redshift]",
       "source_resources": [
-        "s3"
+        "s3_datamart"
       ],
       "dest_resources": [
         "redshift"
@@ -142,7 +142,7 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3] --> [EC2 Python] --> [Redshift]",
       "source_resources": [
-        "s3"
+        "s3_datamart"
       ],
       "dest_resources": [
         "redshift"
@@ -164,7 +164,7 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3 + PG] --> [EC2 Python] --> [Redshift]",
       "source_resources": [
-        "s3",
+        "s3_datamart",
         "pg_product"
       ],
       "dest_resources": [
@@ -185,7 +185,7 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3] --> [EC2 Python] --> [Redshift]",
       "source_resources": [
-        "s3"
+        "s3_datamart"
       ],
       "dest_resources": [
         "redshift"
@@ -205,7 +205,7 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3] --> [EC2 Python] --> [Redshift]",
       "source_resources": [
-        "s3"
+        "s3_datamart"
       ],
       "dest_resources": [
         "redshift"
@@ -227,10 +227,10 @@ window.GRAPH_DATA = {
       "flow": "[PG + S3] --> [EC2 Python] --> [S3] --> [Redshift]",
       "source_resources": [
         "pg_dm",
-        "s3"
+        "s3_datamart"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -251,7 +251,7 @@ window.GRAPH_DATA = {
         "pg_product"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -274,7 +274,7 @@ window.GRAPH_DATA = {
         "pg_dm"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -295,7 +295,7 @@ window.GRAPH_DATA = {
         "pg_product"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -316,7 +316,7 @@ window.GRAPH_DATA = {
         "pg_product"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -334,7 +334,7 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3 dump] --> [EC2 Python] --> [Redshift]",
       "source_resources": [
-        "s3"
+        "s3_vs_account_export"
       ],
       "dest_resources": [
         "redshift"
@@ -357,7 +357,7 @@ window.GRAPH_DATA = {
         "pg_product"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -377,10 +377,10 @@ window.GRAPH_DATA = {
       "flow": "[PG + S3] --> [EC2 Python] --> [S3] --> [Redshift]",
       "source_resources": [
         "pg_teamwork",
-        "s3"
+        "s3_datamart"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -399,7 +399,7 @@ window.GRAPH_DATA = {
       "flow": "[S3] --> [Redshift COPY]",
       "source_resources": [
         "salesforce",
-        "s3"
+        "s3_datamart"
       ],
       "dest_resources": [
         "redshift"
@@ -420,7 +420,7 @@ window.GRAPH_DATA = {
       "flow": "[S3] --> [Redshift COPY]",
       "source_resources": [
         "oracle_ifp_src",
-        "s3"
+        "s3_datamart"
       ],
       "dest_resources": [
         "redshift"
@@ -447,7 +447,7 @@ window.GRAPH_DATA = {
         "redshift"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -508,7 +508,7 @@ window.GRAPH_DATA = {
         "pg_product"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -529,7 +529,7 @@ window.GRAPH_DATA = {
         "bettermode"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -550,7 +550,7 @@ window.GRAPH_DATA = {
         "pg_product"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -572,7 +572,7 @@ window.GRAPH_DATA = {
         "pbi_api"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -590,11 +590,11 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3] --> [EC2 Python + Gemini API] --> [S3]",
       "source_resources": [
-        "s3",
+        "s3_originals",
         "gemini_api"
       ],
       "dest_resources": [
-        "s3"
+        "s3_originals"
       ]
     },
     {
@@ -631,7 +631,7 @@ window.GRAPH_DATA = {
       ],
       "flow": "[S3 diff] --> [EC2 Python] --> [Email]",
       "source_resources": [
-        "s3"
+        "s3_originals"
       ],
       "dest_resources": [
         "email_output"
@@ -832,7 +832,7 @@ window.GRAPH_DATA = {
         "pg_product"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -853,7 +853,7 @@ window.GRAPH_DATA = {
         "pg_product"
       ],
       "dest_resources": [
-        "s3",
+        "s3_datamart",
         "redshift"
       ]
     },
@@ -892,7 +892,7 @@ window.GRAPH_DATA = {
         "pg_vs_account"
       ],
       "dest_resources": [
-        "s3"
+        "s3_vs_account_export"
       ],
       "is_external": true
     }
@@ -1129,10 +1129,28 @@ window.GRAPH_DATA = {
       "note": "OC AI tagging"
     },
     {
-      "id": "s3",
-      "label": "AWS S3",
+      "id": "s3_datalake_hive",
+      "label": "S3: mvb-datalake-hive",
       "kind": "storage",
-      "note": "data lake / dumps"
+      "note": "Databricks raw parquet (AppInsight raw customEvents)"
+    },
+    {
+      "id": "s3_datamart",
+      "label": "S3: mvb-datamart",
+      "kind": "storage",
+      "note": "general ETL staging (PG→RS CSV, EMR processed parquet, Salesforce/Oracle raw)"
+    },
+    {
+      "id": "s3_originals",
+      "label": "S3: p1.myviewboard.com",
+      "kind": "storage",
+      "note": "Originals content (uploads/originals/**) + AI tag metadata"
+    },
+    {
+      "id": "s3_vs_account_export",
+      "label": "S3: vs-account-service-data-export-prod",
+      "kind": "storage",
+      "note": "VS Account Lambda daily Parquet dump"
     },
     {
       "id": "redshift",
