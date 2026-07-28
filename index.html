@@ -255,6 +255,41 @@
     .layer-app       { background: #cffafe; }
     .layer-util      { background: #f1f5f9; }
 
+    /* Resource node — data source / storage / sink */
+    .rf-resource {
+      padding: 10px 14px;
+      border-radius: 22px;
+      font-size: 13px;
+      font-family: system-ui, sans-serif;
+      font-weight: 600;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.15s;
+      min-width: 150px;
+      text-align: center;
+      color: white;
+      letter-spacing: 0.3px;
+    }
+    .rf-resource:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.2); transform: translateY(-1px); }
+    .rf-resource.selected { border-color: #0ea5e9 !important; box-shadow: 0 0 0 3px rgba(14,165,233,0.35); }
+    .rf-resource.upstream { border-color: #059669 !important; }
+    .rf-resource.downstream { border-color: #f59e0b !important; }
+    .rf-resource.dimmed { opacity: 0.2; }
+    .rf-resource-label { line-height: 1.3; }
+    .rf-resource-kind {
+      font-size: 10px;
+      font-family: system-ui, sans-serif;
+      margin-top: 2px;
+      opacity: 0.85;
+      font-weight: 400;
+    }
+
+    /* Kind colors */
+    .kind-db      { background: #7c3aed; }
+    .kind-api     { background: #db2777; }
+    .kind-storage { background: #1e40af; }
+    .kind-sink    { background: #ea580c; }
+
     /* Legend */
     .legend {
       position: absolute;
@@ -319,6 +354,9 @@
       filter: drop-shadow(0 0 3px rgba(245,158,11,0.4));
     }
     .react-flow__edge.dimmed .react-flow__edge-path { stroke: #e2e8f0; stroke-width: 1; opacity: 0.4; }
+    .react-flow__edge.resource-edge .react-flow__edge-path { stroke: #94a3b8; stroke-width: 1.4; stroke-dasharray: 5,4; }
+    .react-flow__edge.resource-edge.upstream-edge .react-flow__edge-path { stroke: #059669; stroke-dasharray: 5,4; stroke-width: 2.5; }
+    .react-flow__edge.resource-edge.downstream-edge .react-flow__edge-path { stroke: #f59e0b; stroke-dasharray: 5,4; stroke-width: 2.5; }
     .react-flow__edge-text { font-size: 11px; font-family: system-ui, sans-serif; fill: #334155; font-weight: 500; }
     .react-flow__edge-textbg { fill: white; }
   </style>
@@ -357,89 +395,93 @@
       { id: 'util',      label: 'Utility' },
     ];
 
-    // Layout with dagre — put connected graph on left, isolated nodes as grid on the right
+    // Layout with dagre — everything in one layered LR graph so resources cluster at the edges
     function layoutGraph(nodes, edges) {
       const NW = 200, NH = 60;
-      const withEdges = new Set();
-      edges.forEach(e => { withEdges.add(e.source); withEdges.add(e.target); });
-      const connected = nodes.filter(n => withEdges.has(n.id));
-      const isolated = nodes.filter(n => !withEdges.has(n.id));
-
+      const RW = 180, RH = 60;
       const g = new dagre.graphlib.Graph();
-      g.setGraph({ rankdir: 'LR', nodesep: 50, ranksep: 140, marginx: 20, marginy: 20, ranker: 'network-simplex' });
+      g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 130, marginx: 20, marginy: 20, ranker: 'network-simplex' });
       g.setDefaultEdgeLabel(() => ({}));
-      connected.forEach(n => g.setNode(n.id, { width: NW, height: NH }));
+
+      nodes.forEach(n => {
+        const isRes = n.data.__kind === 'resource';
+        g.setNode(n.id, { width: isRes ? RW : NW, height: isRes ? RH : NH });
+      });
       edges.forEach(e => g.setEdge(e.source, e.target));
       dagre.layout(g);
 
-      let maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      connected.forEach(n => {
-        const { x, y } = g.node(n.id);
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      });
-
-      const positioned = connected.map(n => {
-        const { x, y } = g.node(n.id);
+      return nodes.map(n => {
+        const info = g.node(n.id);
+        if (!info) {
+          return { ...n, position: { x: 0, y: 0 }, sourcePosition: 'right', targetPosition: 'left' };
+        }
+        const w = n.data.__kind === 'resource' ? RW : NW;
+        const h = n.data.__kind === 'resource' ? RH : NH;
         return {
           ...n,
-          position: { x: x - NW / 2, y: y - NH / 2 },
+          position: { x: info.x - w / 2, y: info.y - h / 2 },
           sourcePosition: 'right',
           targetPosition: 'left',
         };
       });
-
-      // Grid isolated nodes to the right, sorted by layer
-      const layerOrder = { ingest: 0, compute: 1, session: 2, transform: 3, publish: 4, app: 5, util: 6 };
-      const sortedIsolated = [...isolated].sort((a, b) => {
-        const la = layerOrder[a.data.layer] ?? 99;
-        const lb = layerOrder[b.data.layer] ?? 99;
-        if (la !== lb) return la - lb;
-        return a.id.localeCompare(b.id);
-      });
-
-      const cols = 3;
-      const gridStartX = (maxX === -Infinity ? 0 : maxX) + 160;
-      const gridStartY = (minY === Infinity ? 0 : minY);
-      const cellW = NW + 30;
-      const cellH = NH + 20;
-
-      const isolatedPositioned = sortedIsolated.map((n, i) => {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        return {
-          ...n,
-          position: { x: gridStartX + col * cellW, y: gridStartY + row * cellH },
-          sourcePosition: 'right',
-          targetPosition: 'left',
-        };
-      });
-
-      return [...positioned, ...isolatedPositioned];
     }
 
     function buildBase() {
-      const nodes = DATA.nodes.map(d => ({
+      // DAG nodes
+      const dagNodes = DATA.nodes.map(d => ({
         id: d.id,
-        data: { ...d, label: d.id },
-        type: 'default',
+        data: { ...d, label: d.id, __kind: 'dag' },
       }));
+      // Resource nodes (prefixed to avoid ID collision)
+      const resourceNodes = (DATA.resources || []).map(r => ({
+        id: 'res__' + r.id,
+        data: { ...r, __kind: 'resource', __resourceId: r.id },
+      }));
+
+      // DAG→DAG edges
       const edgeCounter = {};
-      const edges = DATA.edges.map((e, i) => {
+      const dagEdges = DATA.edges.map((e, i) => {
         const key = e.source + '->' + e.target;
         edgeCounter[key] = (edgeCounter[key] || 0) + 1;
         return {
           id: `e${i}-${e.source}-${e.target}-${edgeCounter[key]}`,
           source: e.source,
           target: e.target,
-          data: e,
+          data: { ...e, __kind: 'dag' },
           type: 'smoothstep',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#475569', width: 20, height: 20 },
-          animated: false,
         };
       });
-      return { nodes, edges };
+
+      // Resource→DAG and DAG→Resource edges
+      const resEdges = [];
+      DATA.nodes.forEach(n => {
+        (n.source_resources || []).forEach(rid => {
+          resEdges.push({
+            id: `re__src__${rid}__${n.id}`,
+            source: 'res__' + rid,
+            target: n.id,
+            data: { __kind: 'resource', source: 'res__' + rid, target: n.id, dep_type: 'reads_from' },
+            type: 'smoothstep',
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 16, height: 16 },
+          });
+        });
+        (n.dest_resources || []).forEach(rid => {
+          resEdges.push({
+            id: `re__dst__${n.id}__${rid}`,
+            source: n.id,
+            target: 'res__' + rid,
+            data: { __kind: 'resource', source: n.id, target: 'res__' + rid, dep_type: 'writes_to' },
+            type: 'smoothstep',
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 16, height: 16 },
+          });
+        });
+      });
+
+      return {
+        nodes: [...dagNodes, ...resourceNodes],
+        edges: [...dagEdges, ...resEdges],
+      };
     }
 
     function DagNode({ data, selected }) {
@@ -469,22 +511,112 @@
       );
     }
 
-    // Force React Flow to use handles from default type by using type: 'default'
-    // (default node has source/target handles built-in). We override rendering via nodeTypes below.
-    const nodeTypes = { dagNode: DagNode };
+    function ResourceNode({ data }) {
+      const cls = ['rf-resource', 'kind-' + (data.kind || 'storage')];
+      if (data.__selected) cls.push('selected');
+      if (data.__upstream) cls.push('upstream');
+      if (data.__downstream) cls.push('downstream');
+      if (data.__dimmed) cls.push('dimmed');
+      const kindLabel = { db: 'DATABASE', api: 'API', storage: 'STORAGE', sink: 'WRITE ENDPOINT' }[data.kind] || data.kind;
+      return React.createElement('div', { className: cls.join(' ') },
+        React.createElement(Handle, {
+          type: 'target',
+          position: Position.Left,
+          style: { background: '#cbd5e1', width: 8, height: 8, border: 'none' },
+          isConnectable: false,
+        }),
+        React.createElement('div', { className: 'rf-resource-label' }, data.label),
+        React.createElement('div', { className: 'rf-resource-kind' }, kindLabel),
+        React.createElement(Handle, {
+          type: 'source',
+          position: Position.Right,
+          style: { background: '#cbd5e1', width: 8, height: 8, border: 'none' },
+          isConnectable: false,
+        }),
+      );
+    }
 
-    function DetailPanel({ node, onSelect, edges }) {
+    const nodeTypes = { dagNode: DagNode, resourceNode: ResourceNode };
+
+    function ResourceDetailPanel({ node, onSelect, edges, allNodes }) {
+      const d = node.data;
+      const readers = edges.filter(e => e.source === node.id && e.data.__kind === 'resource');
+      const writers = edges.filter(e => e.target === node.id && e.data.__kind === 'resource');
+      const nodeById = new Map(allNodes.map(n => [n.id, n]));
+      const kindLabel = { db: 'DATABASE', api: 'API', storage: 'STORAGE', sink: 'WRITE ENDPOINT' }[d.kind] || d.kind;
+      return React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'detail-header' },
+          React.createElement('h2', null, d.label),
+          React.createElement('div', { className: 'detail-badges' },
+            React.createElement('span', { className: 'badge', style: { background: '#0f172a', color: 'white' } }, kindLabel),
+            React.createElement('span', { className: 'badge' }, d.id),
+          ),
+          d.note && React.createElement('div', { className: 'detail-value', style: { marginTop: 8, fontSize: 12, color: '#475569' } }, d.note),
+        ),
+        React.createElement('div', { className: 'detail-section' },
+          React.createElement('div', { className: 'detail-label' }, `讀取這個資源的 DAG (${writers.length})`),
+          writers.length === 0
+            ? React.createElement('div', { className: 'detail-value', style: { color: '#94a3b8' } }, '(無)')
+            : writers.map((e, i) => {
+                const dag = nodeById.get(e.source);
+                return React.createElement('div', {
+                  key: i,
+                  className: 'dep-item',
+                  onClick: () => onSelect(e.source),
+                },
+                  React.createElement('div', { style: { flex: 1 } },
+                    React.createElement('span', { className: 'dep-name' }, dag ? dag.data.id : e.source),
+                    React.createElement('span', { className: 'dep-meta' },
+                      dag && dag.data.schedule ? dag.data.schedule : '',
+                      dag && dag.data.owner ? ' · ' + dag.data.owner : ''
+                    )
+                  )
+                );
+              })
+        ),
+        React.createElement('div', { className: 'detail-section' },
+          React.createElement('div', { className: 'detail-label' }, `寫入這個資源的 DAG (${readers.length})`),
+          readers.length === 0
+            ? React.createElement('div', { className: 'detail-value', style: { color: '#94a3b8' } }, '(無)')
+            : readers.map((e, i) => {
+                const dag = nodeById.get(e.target);
+                return React.createElement('div', {
+                  key: i,
+                  className: 'dep-item',
+                  onClick: () => onSelect(e.target),
+                },
+                  React.createElement('div', { style: { flex: 1 } },
+                    React.createElement('span', { className: 'dep-name' }, dag ? dag.data.id : e.target),
+                    React.createElement('span', { className: 'dep-meta' },
+                      dag && dag.data.schedule ? dag.data.schedule : '',
+                      dag && dag.data.owner ? ' · ' + dag.data.owner : ''
+                    )
+                  )
+                );
+              })
+        ),
+      );
+    }
+
+    function DetailPanel({ node, onSelect, edges, allNodes }) {
       if (!node) {
         return React.createElement('div', { className: 'detail-empty' },
-          '點擊左邊的 node 看詳細資料',
+          '點擊 node 看詳細資料',
           React.createElement('br'),
           React.createElement('br'),
-          '搜尋: 輸入 dag_id / owner / 表名'
+          '搜尋: 輸入 dag_id / owner / 表名 / 資源名稱'
         );
       }
+      if (node.data.__kind === 'resource') {
+        return React.createElement(ResourceDetailPanel, { node, onSelect, edges, allNodes });
+      }
       const d = node.data;
-      const upstreamEdges = edges.filter(e => e.target === node.id);
-      const downstreamEdges = edges.filter(e => e.source === node.id);
+      // Only DAG-to-DAG dependencies in this panel
+      const upstreamEdges = edges.filter(e => e.target === node.id && e.data.__kind === 'dag');
+      const downstreamEdges = edges.filter(e => e.source === node.id && e.data.__kind === 'dag');
+      const upstreamResources = edges.filter(e => e.target === node.id && e.data.__kind === 'resource');
+      const downstreamResources = edges.filter(e => e.source === node.id && e.data.__kind === 'resource');
+      const nodeById = new Map(allNodes.map(n => [n.id, n]));
 
       const link = 'https://github.com/vs-jim-hc-chang/data-dag-doc';
       const airflow = `https://airflow.myviewboard.cloud/dags/${d.id}/grid`;
@@ -527,7 +659,39 @@
           )
         ),
         React.createElement('div', { className: 'detail-section' },
-          React.createElement('div', { className: 'detail-label' }, `Upstream 等 (${upstreamEdges.length})`),
+          React.createElement('div', { className: 'detail-label' }, `讀取的資源 (${upstreamResources.length})`),
+          upstreamResources.length === 0
+            ? React.createElement('div', { className: 'detail-value', style: { color: '#94a3b8' } }, '(無)')
+            : upstreamResources.map((e, i) => {
+                const res = nodeById.get(e.source);
+                return React.createElement('div', {
+                  key: i, className: 'dep-item', onClick: () => onSelect(e.source),
+                },
+                  React.createElement('div', { style: { flex: 1 } },
+                    React.createElement('span', { className: 'dep-name' }, res ? res.data.label : e.source),
+                    React.createElement('span', { className: 'dep-meta' }, res ? res.data.kind : '')
+                  )
+                );
+              })
+        ),
+        React.createElement('div', { className: 'detail-section' },
+          React.createElement('div', { className: 'detail-label' }, `寫入的資源 (${downstreamResources.length})`),
+          downstreamResources.length === 0
+            ? React.createElement('div', { className: 'detail-value', style: { color: '#94a3b8' } }, '(無)')
+            : downstreamResources.map((e, i) => {
+                const res = nodeById.get(e.target);
+                return React.createElement('div', {
+                  key: i, className: 'dep-item', onClick: () => onSelect(e.target),
+                },
+                  React.createElement('div', { style: { flex: 1 } },
+                    React.createElement('span', { className: 'dep-name' }, res ? res.data.label : e.target),
+                    React.createElement('span', { className: 'dep-meta' }, res ? res.data.kind : '')
+                  )
+                );
+              })
+        ),
+        React.createElement('div', { className: 'detail-section' },
+          React.createElement('div', { className: 'detail-label' }, `Upstream DAG 等 (${upstreamEdges.length})`),
           upstreamEdges.length === 0
             ? React.createElement('div', { className: 'detail-value', style: { color: '#94a3b8' } }, '(無 — 源頭 DAG)')
             : upstreamEdges.map((e, i) => React.createElement('div', {
@@ -547,7 +711,7 @@
               ))
         ),
         React.createElement('div', { className: 'detail-section' },
-          React.createElement('div', { className: 'detail-label' }, `Downstream 誰等我 (${downstreamEdges.length})`),
+          React.createElement('div', { className: 'detail-label' }, `Downstream DAG 誰等我 (${downstreamEdges.length})`),
           downstreamEdges.length === 0
             ? React.createElement('div', { className: 'detail-value', style: { color: '#94a3b8' } }, '(無)')
             : downstreamEdges.map((e, i) => React.createElement('div', {
@@ -571,12 +735,27 @@
 
     function Legend() {
       return React.createElement('div', { className: 'legend' },
-        React.createElement('div', { className: 'legend-title' }, 'Layer'),
+        React.createElement('div', { className: 'legend-title' }, 'DAG Layer'),
         ...LAYERS.map(l => React.createElement('div', { key: l.id, className: 'legend-item' },
           React.createElement('span', { className: `legend-swatch layer-${l.id}` }),
           l.label
         )),
+        React.createElement('div', { className: 'legend-title', style: { marginTop: 8 } }, 'Resource'),
+        React.createElement('div', { className: 'legend-item' },
+          React.createElement('span', { className: 'legend-swatch kind-db' }), 'Database'
+        ),
+        React.createElement('div', { className: 'legend-item' },
+          React.createElement('span', { className: 'legend-swatch kind-api' }), 'API / External'
+        ),
+        React.createElement('div', { className: 'legend-item' },
+          React.createElement('span', { className: 'legend-swatch kind-storage' }), 'Storage (S3/RS/DDB)'
+        ),
+        React.createElement('div', { className: 'legend-item' },
+          React.createElement('span', { className: 'legend-swatch kind-sink' }), 'Write Endpoint'
+        ),
         React.createElement('div', { className: 'legend-note' },
+          '實線 = DAG 依賴 · 虛線 = 資料流',
+          React.createElement('br'),
           '綠框 = upstream · 橘框 = downstream · 藍框 = 選中'
         )
       );
@@ -592,13 +771,20 @@
       const matchIds = useMemo(() => {
         if (!search.trim()) return null;
         const q = search.trim().toLowerCase();
-        return new Set(DATA.nodes.filter(n => {
+        const hits = new Set();
+        DATA.nodes.forEach(n => {
           const hay = [
             n.id, n.owner || '', n.layer || '', n.file || '', n.flow || '',
-            ...(n.sources || []), ...(n.destinations || [])
+            ...(n.sources || []), ...(n.destinations || []),
+            ...(n.source_resources || []), ...(n.dest_resources || [])
           ].join(' ').toLowerCase();
-          return hay.includes(q);
-        }).map(n => n.id));
+          if (hay.includes(q)) hits.add(n.id);
+        });
+        (DATA.resources || []).forEach(r => {
+          const hay = [r.id, r.label, r.kind, r.note || ''].join(' ').toLowerCase();
+          if (hay.includes(q)) hits.add('res__' + r.id);
+        });
+        return hits;
       }, [search]);
 
       // Compute related ids for highlight
@@ -640,9 +826,10 @@
           const isDown = related.down.has(n.id);
           const searchHit = matchIds ? matchIds.has(n.id) : true;
           const dimmed = (!!selectedId && !isSel && !isUp && !isDown) || (matchIds && !searchHit);
+          const isResource = n.data.__kind === 'resource';
           return {
             ...n,
-            type: 'dagNode',
+            type: isResource ? 'resourceNode' : 'dagNode',
             data: {
               ...n.data,
               __selected: isSel,
@@ -659,19 +846,21 @@
           const involved = selectedId && (e.source === selectedId || e.target === selectedId);
           const upEdge = selectedId && related.up.has(e.source) && (related.up.has(e.target) || e.target === selectedId);
           const downEdge = selectedId && related.down.has(e.target) && (related.down.has(e.source) || e.source === selectedId);
+          const isResourceEdge = e.data.__kind === 'resource';
           const cls = [];
+          if (isResourceEdge) cls.push('resource-edge');
           if (upEdge) cls.push('upstream-edge');
           else if (downEdge) cls.push('downstream-edge');
           else if (selectedId && !involved) cls.push('dimmed');
-          let markerColor = '#475569';
+          let markerColor = isResourceEdge ? '#94a3b8' : '#475569';
           if (upEdge) markerColor = '#059669';
           else if (downEdge) markerColor = '#f59e0b';
-          const showLabel = involved || (!selectedId && false);
+          const showLabel = !isResourceEdge && involved;
           return {
             ...e,
             className: cls.join(' '),
-            markerEnd: { type: MarkerType.ArrowClosed, color: markerColor, width: 20, height: 20 },
-            label: showLabel ? e.data.external_task.split(' -> ').pop() : undefined,
+            markerEnd: { type: MarkerType.ArrowClosed, color: markerColor, width: isResourceEdge ? 16 : 20, height: isResourceEdge ? 16 : 20 },
+            label: showLabel && e.data.external_task ? e.data.external_task.split(' -> ').pop() : undefined,
             labelBgPadding: [4, 2],
             labelBgBorderRadius: 3,
             labelBgStyle: { fill: 'white', fillOpacity: 0.95, stroke: markerColor, strokeWidth: 0.5 },
@@ -709,7 +898,9 @@
         }
       }, [matchIds, rf, layouted]);
 
-      const stats = `${DATA.nodes.length} DAGs · ${DATA.edges.length} edges` +
+      const resCount = (DATA.resources || []).length;
+      const resEdgeCount = base.edges.filter(e => e.data.__kind === 'resource').length;
+      const stats = `${DATA.nodes.length} DAGs · ${resCount} resources · ${DATA.edges.length + resEdgeCount} edges` +
         (matchIds ? ` · ${matchIds.size} match` : '');
 
       return React.createElement(React.Fragment, null,
@@ -756,6 +947,11 @@
               React.createElement(Controls, { showInteractive: false }),
               React.createElement(MiniMap, {
                 nodeColor: n => {
+                  if (n.data?.__kind === 'resource') {
+                    return {
+                      db: '#7c3aed', api: '#db2777', storage: '#1e40af', sink: '#ea580c'
+                    }[n.data.kind] || '#334155';
+                  }
                   const l = n.data?.layer;
                   return {
                     ingest: '#86efac', compute: '#fdba74', session: '#93c5fd',
@@ -774,6 +970,7 @@
               node: selectedNode,
               onSelect: selectById,
               edges: base.edges,
+              allNodes: base.nodes,
             })
           ),
         )

@@ -14,7 +14,14 @@ window.GRAPH_DATA = {
         "S3: appinsight/raw/{app}/customEvents/",
         "Redshift: log.insight_event_log"
       ],
-      "flow": "[Azure App Insights API] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[Azure App Insights API] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "azure_app_insights"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "dbrix_appinsight_to_s3",
@@ -28,7 +35,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "S3: appinsight/raw/{app}/customEvents/ (parquet)"
       ],
-      "flow": "[Azure Blob] --> [Databricks] --> [S3 Raw]"
+      "flow": "[Azure Blob] --> [Databricks] --> [S3 Raw]",
+      "source_resources": [
+        "azure_app_insights"
+      ],
+      "dest_resources": [
+        "s3"
+      ]
     },
     {
       "id": "emr_v2",
@@ -44,7 +57,15 @@ window.GRAPH_DATA = {
         "Redshift: ifp.ifp_viewboard_ux_agg, ifp.launcher3_agg, teamwork_prod.teamwork_prod_event, airsync.airsync_sender_event, airsync.airsync_receiver_event, edla.device_session_duration",
         "S3 Processed (parquet)"
       ],
-      "flow": "[S3 Raw] --> [EMR PySpark] --> [S3 Processed] --> [Redshift COPY]"
+      "flow": "[S3 Raw] --> [EMR PySpark] --> [S3 Processed] --> [Redshift COPY]",
+      "source_resources": [
+        "s3",
+        "pg_edla"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "event_session_instance",
@@ -59,7 +80,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: appinsight.operation_session_windows/android/flutter, appinsight.device_session_duration, appinsight.operation_event_windows_two_year_lower"
       ],
-      "flow": "[S3] --> [EC2 Python session cut] --> [Redshift]"
+      "flow": "[S3] --> [EC2 Python session cut] --> [Redshift]",
+      "source_resources": [
+        "s3"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "event_session_instance_v3",
@@ -73,7 +100,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: appinsight.operation_session_windows_v3/android_v3/flutter_v3"
       ],
-      "flow": "[S3] --> [EC2 Python session cut] --> [Redshift]"
+      "flow": "[S3] --> [EC2 Python session cut] --> [Redshift]",
+      "source_resources": [
+        "s3"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "event_session_classroom_whiteboard",
@@ -87,7 +120,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: appinsight.operation_session_classroom, appinsight.operation_session_whiteboard"
       ],
-      "flow": "[S3] --> [EC2 Python] --> [Redshift]"
+      "flow": "[S3] --> [EC2 Python] --> [Redshift]",
+      "source_resources": [
+        "s3"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "event_session_companion",
@@ -101,7 +140,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: datamart_companion.companion_session_*"
       ],
-      "flow": "[S3] --> [EC2 Python] --> [Redshift]"
+      "flow": "[S3] --> [EC2 Python] --> [Redshift]",
+      "source_resources": [
+        "s3"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "original_content",
@@ -117,7 +162,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: datamart_oc.oc_windows/android/flutter/classroom/whiteboard/games/resources"
       ],
-      "flow": "[S3 + PG] --> [EC2 Python] --> [Redshift]"
+      "flow": "[S3 + PG] --> [EC2 Python] --> [Redshift]",
+      "source_resources": [
+        "s3",
+        "pg_product"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "entity_insight_prod_to_insight_event_log",
@@ -131,7 +183,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: log.insight_event_log, insight.insight_event_count_all_time_v"
       ],
-      "flow": "[S3] --> [EC2 Python] --> [Redshift]"
+      "flow": "[S3] --> [EC2 Python] --> [Redshift]",
+      "source_resources": [
+        "s3"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "myviewboard_com",
@@ -145,7 +203,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: mvbcom.myviewboard_com_tiles_click, mvbcom.myviewboard_com_2"
       ],
-      "flow": "[S3] --> [EC2 Python] --> [Redshift]"
+      "flow": "[S3] --> [EC2 Python] --> [Redshift]",
+      "source_resources": [
+        "s3"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "device_relation",
@@ -160,7 +224,15 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: device_manager.app_action_log, api_request_log, function_type, broadcast_size, usage_log, launch_country_log, device_mac, broadcast"
       ],
-      "flow": "[PG + S3] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG + S3] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_dm",
+        "s3"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "instance_relation",
@@ -174,7 +246,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: instance.instance_entity_account, instance.instance_info_modify_log, instance.instance_registered_fixed"
       ],
-      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_product"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "instance_android_launcher_device_entity",
@@ -189,7 +268,15 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: instance.instance_android_launcher_device_entity"
       ],
-      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_product",
+        "pg_dm"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "entity_account",
@@ -203,7 +290,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: entity.event_entity_log_all, entity.account_deleted, entity.account_fixed, users.account_login_count"
       ],
-      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_product"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "account_related",
@@ -217,7 +311,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: users.account_role, users.user_login, log.insight_survey"
       ],
-      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_product"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "viewsonic_migration",
@@ -231,7 +332,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: vs_account.*, vs_entity.*, public.eventdb_entity_log_all"
       ],
-      "flow": "[S3 dump] --> [EC2 Python] --> [Redshift]"
+      "flow": "[S3 dump] --> [EC2 Python] --> [Redshift]",
+      "source_resources": [
+        "s3"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "subscription",
@@ -245,7 +352,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: subscription.entity_subscription, subscription.service_instance, subscription.user_subscription, subscription.feature_label_list"
       ],
-      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_product"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "teamwork",
@@ -260,7 +374,15 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: teamwork_prod.teamwork_prod_event, board, project, team, mvb_id_relation, board_log, subscription_log, team_log, subscription_users, subscription_collaborator, team_collaborator, project_collaborator, board_collaborator"
       ],
-      "flow": "[PG + S3] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG + S3] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_teamwork",
+        "s3"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "salesforce",
@@ -274,7 +396,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: salesforce.entity_sales_relation"
       ],
-      "flow": "[S3] --> [Redshift COPY]"
+      "flow": "[S3] --> [Redshift COPY]",
+      "source_resources": [
+        "salesforce",
+        "s3"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "oracle_ifp",
@@ -288,7 +417,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: oracle.ifp_qty_extend"
       ],
-      "flow": "[S3] --> [Redshift COPY]"
+      "flow": "[S3] --> [Redshift COPY]",
+      "source_resources": [
+        "oracle_ifp_src",
+        "s3"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "email_campaign",
@@ -304,7 +440,16 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: email_campaign.action, template, target_user_list, click_event_url"
       ],
-      "flow": "[PG + DDB + RS] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG + DDB + RS] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_email",
+        "dynamodb",
+        "redshift"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "email_alert_list",
@@ -318,7 +463,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Savvy PG: savvy.alert_list_user_login, savvy.alert_list_device_turn_on"
       ],
-      "flow": "[Redshift] --> [EC2 Python] --> [Savvy PG]"
+      "flow": "[Redshift] --> [EC2 Python] --> [Savvy PG]",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "savvy_pg"
+      ]
     },
     {
       "id": "email_alert_condition",
@@ -332,7 +483,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: email_alert.alert_condition_user_login, email_alert.alert_condition_device_turn_on"
       ],
-      "flow": "[Redshift] --> [EC2 Python] --> [Redshift]"
+      "flow": "[Redshift] --> [EC2 Python] --> [Redshift]",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "email_log",
@@ -346,7 +503,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: email_log.account_log, email_log.email_info"
       ],
-      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_product"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "community",
@@ -360,7 +524,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: community.*"
       ],
-      "flow": "[Bettermode API] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[Bettermode API] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "bettermode"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "msp",
@@ -374,7 +545,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: msp.account_msp, msp.entity_account_msp, msp.entity_msp_managed, msp.entity_requirement_msp"
       ],
-      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_product"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "pbi_activity",
@@ -389,7 +567,14 @@ window.GRAPH_DATA = {
         "Redshift: public.pbi_activity",
         "S3: pbi_activity/"
       ],
-      "flow": "[Power BI API] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[Power BI API] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pbi_api"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "originals_ai_tags",
@@ -403,7 +588,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "S3 (Gemini AI tagged metadata)"
       ],
-      "flow": "[S3] --> [EC2 Python + Gemini API] --> [S3]"
+      "flow": "[S3] --> [EC2 Python + Gemini API] --> [S3]",
+      "source_resources": [
+        "s3",
+        "gemini_api"
+      ],
+      "dest_resources": [
+        "s3"
+      ]
     },
     {
       "id": "originals_recommend",
@@ -417,7 +609,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "DynamoDB (OC 推薦清單)"
       ],
-      "flow": "[Redshift] --> [EC2 Python] --> [DynamoDB]"
+      "flow": "[Redshift] --> [EC2 Python] --> [DynamoDB]",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "dynamodb"
+      ]
     },
     {
       "id": "oc_modified_daily_monitor",
@@ -431,7 +629,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Email 通知"
       ],
-      "flow": "[S3 diff] --> [EC2 Python] --> [Email]"
+      "flow": "[S3 diff] --> [EC2 Python] --> [Email]",
+      "source_resources": [
+        "s3"
+      ],
+      "dest_resources": [
+        "email_output"
+      ]
     },
     {
       "id": "active_canvas_hour",
@@ -445,7 +649,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift (Canvas Hour datamart)"
       ],
-      "flow": "[Redshift] --> [EC2 Python monthly agg] --> [Redshift]"
+      "flow": "[Redshift] --> [EC2 Python monthly agg] --> [Redshift]",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "Sales_Benchmark_ETL",
@@ -459,7 +669,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift (Sales Benchmark datamart)"
       ],
-      "flow": "[Redshift] --> [EC2 Python] --> [Redshift]"
+      "flow": "[Redshift] --> [EC2 Python] --> [Redshift]",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "target_audience_tags",
@@ -473,7 +689,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: user_segmentation.application, classroom_host, entity_device_binded, manager_active, user_status, operation_role, customer_type, sign_up_type, original_content_engagement, user_country, user_subscription, user_premium_tool, entity_application, entity_type, user_highest_badges, user_community_status, entity_purpose, teamone_user_tags, teamone_utm"
       ],
-      "flow": "[Redshift] --> [EC2 Python] --> [Redshift]"
+      "flow": "[Redshift] --> [EC2 Python] --> [Redshift]",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "user_tag_v11",
@@ -489,7 +711,13 @@ window.GRAPH_DATA = {
       ],
       "flow": "[Redshift] --> [EC2 Python] --> [Redshift]",
       "paused": true,
-      "paused_reason": "2026-06-16 paused — upstream preprocess S3 gap"
+      "paused_reason": "2026-06-16 paused — upstream preprocess S3 gap",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "entity_insight_migration",
@@ -503,7 +731,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Savvy PG (myviewboard-product-orm-prod write endpoint): savvy.* (27) + daco.entity_account"
       ],
-      "flow": "[Redshift] --> [EC2 Python migration] --> [Savvy PG + daco PG]"
+      "flow": "[Redshift] --> [EC2 Python migration] --> [Savvy PG + daco PG]",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "savvy_pg"
+      ]
     },
     {
       "id": "entity_insight_stage_migration",
@@ -517,7 +751,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Stage Savvy PG: savvy.*, daco.entity_account"
       ],
-      "flow": "[Redshift] --> [EC2 Python] --> [Stage Savvy PG]"
+      "flow": "[Redshift] --> [EC2 Python] --> [Stage Savvy PG]",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "stage_savvy_pg"
+      ]
     },
     {
       "id": "dags_dbt_users",
@@ -531,7 +771,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: users.user_entity_country_all_time (+deps), users.mvb_id_chosen_country"
       ],
-      "flow": "[Redshift] --> [DBT run on EC2] --> [Redshift (users models)]"
+      "flow": "[Redshift] --> [DBT run on EC2] --> [Redshift (users models)]",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "dags_dbt_instance",
@@ -545,7 +791,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: instance.instance_android_launcher_device_entity_all_time, instance_entity_account_all, instance_location_all_time (+deps), operation_event_windows_two_year_lower"
       ],
-      "flow": "[Redshift] --> [DBT run on EC2] --> [Redshift (instance models)]"
+      "flow": "[Redshift] --> [DBT run on EC2] --> [Redshift (instance models)]",
+      "source_resources": [
+        "redshift"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     },
     {
       "id": "manual_rerun",
@@ -559,7 +811,9 @@ window.GRAPH_DATA = {
       "destinations": [
         "Parameterized (usually Redshift)"
       ],
-      "flow": "[parameterized] --> [EC2 Python] --> [parameterized]"
+      "flow": "[parameterized] --> [EC2 Python] --> [parameterized]",
+      "source_resources": [],
+      "dest_resources": []
     },
     {
       "id": "daily_common_data_update",
@@ -573,7 +827,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: country_related.*, in_house_entity"
       ],
-      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[PG] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_product"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "daily_viewsonic_dataset_update",
@@ -587,7 +848,14 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift: vs_account.viewsonic_entity, viewsonic_account, viewsonic_account_entity, savvy.savvy_demo_id, daco.daco_account_id"
       ],
-      "flow": "[VS Account PG] --> [EC2 Python] --> [S3] --> [Redshift]"
+      "flow": "[VS Account PG] --> [EC2 Python] --> [S3] --> [Redshift]",
+      "source_resources": [
+        "pg_vs_account"
+      ],
+      "dest_resources": [
+        "s3",
+        "redshift"
+      ]
     },
     {
       "id": "daily_stage_viewsonic_dataset_update",
@@ -601,7 +869,13 @@ window.GRAPH_DATA = {
       "destinations": [
         "Redshift stage schema (stage_entity_account 系列)"
       ],
-      "flow": "[VS Account Stage PG] --> [EC2 Python] --> [Redshift stage]"
+      "flow": "[VS Account Stage PG] --> [EC2 Python] --> [Redshift stage]",
+      "source_resources": [
+        "pg_vs_account_stage"
+      ],
+      "dest_resources": [
+        "redshift"
+      ]
     }
   ],
   "edges": [
@@ -760,6 +1034,122 @@ window.GRAPH_DATA = {
       "target": "email_alert_list",
       "dep_type": "ExternalTaskMarker",
       "external_task": "task_dependency_entity_insight_migration -> entity_insight_migration_completed"
+    }
+  ],
+  "resources": [
+    {
+      "id": "azure_app_insights",
+      "label": "Azure App Insights",
+      "kind": "api",
+      "note": "Continuous Export + REST API"
+    },
+    {
+      "id": "pg_product",
+      "label": "myViewBoard Product PG",
+      "kind": "db",
+      "note": "myviewboard-product (read replica)"
+    },
+    {
+      "id": "pg_dm",
+      "label": "Device Manager PG",
+      "kind": "db",
+      "note": "myviewboard-dm"
+    },
+    {
+      "id": "pg_edla",
+      "label": "EDLA RDS (dm-log)",
+      "kind": "db",
+      "note": "myviewboard-dm-log"
+    },
+    {
+      "id": "pg_vs_account",
+      "label": "VS Account PG",
+      "kind": "db",
+      "note": "viewsonic-account-prod"
+    },
+    {
+      "id": "pg_vs_account_stage",
+      "label": "VS Account Stage PG",
+      "kind": "db",
+      "note": "stage"
+    },
+    {
+      "id": "pg_teamwork",
+      "label": "Teamwork PG",
+      "kind": "db",
+      "note": "postgres_prod_teamwork"
+    },
+    {
+      "id": "pg_email",
+      "label": "Email Service PG",
+      "kind": "db",
+      "note": "email service"
+    },
+    {
+      "id": "salesforce",
+      "label": "Salesforce API",
+      "kind": "api",
+      "note": "外部 process 落 S3"
+    },
+    {
+      "id": "oracle_ifp_src",
+      "label": "Oracle IFP",
+      "kind": "api",
+      "note": "外部 process 落 S3"
+    },
+    {
+      "id": "pbi_api",
+      "label": "Power BI Admin API",
+      "kind": "api",
+      "note": "OAuth 2.0"
+    },
+    {
+      "id": "bettermode",
+      "label": "Bettermode GraphQL",
+      "kind": "api",
+      "note": "community API"
+    },
+    {
+      "id": "gemini_api",
+      "label": "Google Gemini API",
+      "kind": "api",
+      "note": "OC AI tagging"
+    },
+    {
+      "id": "s3",
+      "label": "AWS S3",
+      "kind": "storage",
+      "note": "data lake / dumps"
+    },
+    {
+      "id": "redshift",
+      "label": "AWS Redshift",
+      "kind": "storage",
+      "note": "single source of truth"
+    },
+    {
+      "id": "dynamodb",
+      "label": "AWS DynamoDB",
+      "kind": "storage",
+      "note": "OC recommend / email campaign"
+    },
+    {
+      "id": "savvy_pg",
+      "label": "Savvy PG (write endpoint)",
+      "kind": "sink",
+      "note": "myviewboard-product-orm-prod → NestJS Entity Insight API"
+    },
+    {
+      "id": "stage_savvy_pg",
+      "label": "Stage Savvy PG",
+      "kind": "sink",
+      "note": "stage env"
+    },
+    {
+      "id": "email_output",
+      "label": "Email 通知",
+      "kind": "sink",
+      "note": "notification only"
     }
   ]
 };
