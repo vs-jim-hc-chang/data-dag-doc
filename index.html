@@ -787,35 +787,55 @@
         return hits;
       }, [search]);
 
-      // Compute related ids for highlight
+      // Compute related ids for highlight.
+      // - DAG selected: BFS chain via DAG edges only + direct 1-hop resources
+      // - Resource selected: only direct 1-hop DAGs (writers = upstream, readers = downstream)
       const related = useMemo(() => {
         if (!selectedId) return { up: new Set(), down: new Set() };
+
+        const isResource = selectedId.startsWith('res__');
         const up = new Set();
         const down = new Set();
-        // BFS upstream
+
+        if (isResource) {
+          base.edges.forEach(e => {
+            if (e.data.__kind !== 'resource') return;
+            if (e.target === selectedId) up.add(e.source);     // writer → resource
+            if (e.source === selectedId) down.add(e.target);   // resource → reader
+          });
+          return { up, down };
+        }
+
+        // DAG selected — BFS only through DAG-DAG edges
+        const dagEdges = base.edges.filter(e => e.data.__kind === 'dag');
         let frontier = [selectedId];
         while (frontier.length) {
           const next = [];
           for (const id of frontier) {
-            base.edges.filter(e => e.target === id && !up.has(e.source)).forEach(e => {
+            dagEdges.filter(e => e.target === id && !up.has(e.source)).forEach(e => {
               up.add(e.source);
               next.push(e.source);
             });
           }
           frontier = next;
         }
-        // BFS downstream
         frontier = [selectedId];
         while (frontier.length) {
           const next = [];
           for (const id of frontier) {
-            base.edges.filter(e => e.source === id && !down.has(e.target)).forEach(e => {
+            dagEdges.filter(e => e.source === id && !down.has(e.target)).forEach(e => {
               down.add(e.target);
               next.push(e.target);
             });
           }
           frontier = next;
         }
+        // Direct 1-hop resources of the selected DAG
+        base.edges.forEach(e => {
+          if (e.data.__kind !== 'resource') return;
+          if (e.target === selectedId) up.add(e.source);       // reads from resource
+          if (e.source === selectedId) down.add(e.target);     // writes to resource
+        });
         return { up, down };
       }, [selectedId, base.edges]);
 
@@ -842,20 +862,42 @@
       }, [layouted, selectedId, related, matchIds]);
 
       const edges = useMemo(() => {
+        const isSelectedResource = selectedId && selectedId.startsWith('res__');
         return base.edges.map(e => {
-          const involved = selectedId && (e.source === selectedId || e.target === selectedId);
-          const upEdge = selectedId && related.up.has(e.source) && (related.up.has(e.target) || e.target === selectedId);
-          const downEdge = selectedId && related.down.has(e.target) && (related.down.has(e.source) || e.source === selectedId);
           const isResourceEdge = e.data.__kind === 'resource';
+          let upEdge = false;
+          let downEdge = false;
+
+          if (selectedId) {
+            if (isSelectedResource) {
+              // Resource selected: only highlight edges directly touching it (all are resource edges)
+              if (e.target === selectedId) upEdge = true;         // writer DAG → this resource
+              else if (e.source === selectedId) downEdge = true;  // this resource → reader DAG
+            } else {
+              // DAG selected
+              if (isResourceEdge) {
+                // Resource edge: only when it touches the selected DAG
+                if (e.target === selectedId) upEdge = true;       // resource → selected DAG (reads from)
+                else if (e.source === selectedId) downEdge = true; // selected DAG → resource (writes to)
+              } else {
+                // DAG-DAG edge: BFS chain result
+                upEdge = related.up.has(e.source) && (related.up.has(e.target) || e.target === selectedId);
+                downEdge = related.down.has(e.target) && (related.down.has(e.source) || e.source === selectedId);
+              }
+            }
+          }
+
           const cls = [];
           if (isResourceEdge) cls.push('resource-edge');
           if (upEdge) cls.push('upstream-edge');
           else if (downEdge) cls.push('downstream-edge');
-          else if (selectedId && !involved) cls.push('dimmed');
+          else if (selectedId) cls.push('dimmed');
+
           let markerColor = isResourceEdge ? '#94a3b8' : '#475569';
           if (upEdge) markerColor = '#059669';
           else if (downEdge) markerColor = '#f59e0b';
-          const showLabel = !isResourceEdge && involved;
+
+          const showLabel = !isResourceEdge && (upEdge || downEdge);
           return {
             ...e,
             className: cls.join(' '),
