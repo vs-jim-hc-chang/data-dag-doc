@@ -78,6 +78,66 @@
       padding: 0 4px;
     }
     .search-clear:hover { color: #e2e8f0; }
+    .search-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 4px;
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      max-height: 360px;
+      overflow-y: auto;
+      z-index: 100;
+    }
+    .suggestion-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+      font-size: 12px;
+    }
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-item:hover, .suggestion-item.active { background: #e0f2fe; }
+    .suggestion-item .id {
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      font-weight: 500;
+      color: #0f172a;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .suggestion-item .kind-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: #f1f5f9;
+      color: #64748b;
+      font-family: system-ui, sans-serif;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .suggestion-item .kind-tag.dag { background: #dbeafe; color: #1e40af; }
+    .suggestion-item .kind-tag.resource { background: #ede9fe; color: #6d28d9; }
+    .suggestion-item .kind-tag.external { background: #fef3c7; color: #b45309; }
+    .suggestion-item mark {
+      background: #fde68a;
+      color: #78350f;
+      padding: 0;
+      font-weight: 600;
+    }
+    .suggestion-empty {
+      padding: 12px;
+      color: #94a3b8;
+      font-size: 12px;
+      text-align: center;
+    }
     .stats {
       color: #94a3b8;
       font-size: 12px;
@@ -775,6 +835,8 @@
       const layouted = useMemo(() => layoutGraph(base.nodes, base.edges), [base]);
       const [selectedId, setSelectedId] = useState(null);
       const [search, setSearch] = useState('');
+      const [suggestOpen, setSuggestOpen] = useState(false);
+      const [suggestIdx, setSuggestIdx] = useState(0);
       const rf = useReactFlow();
 
       const matchIds = useMemo(() => {
@@ -794,6 +856,47 @@
           if (hay.includes(q)) hits.add('res__' + r.id);
         });
         return hits;
+      }, [search]);
+
+      // Ranked suggestions for the dropdown (prefix matches first, then substring)
+      const suggestions = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        if (!q) return [];
+        const items = [];
+        DATA.nodes.forEach(n => {
+          const idLower = n.id.toLowerCase();
+          const label = n.id;
+          const isExternal = n.layer === 'external';
+          const hay = [n.id, n.owner || '', n.layer || '', n.file || '', ...(n.sources || []), ...(n.destinations || [])].join(' ').toLowerCase();
+          if (!hay.includes(q)) return;
+          const score = idLower.startsWith(q) ? 0 : (idLower.includes(q) ? 1 : 2);
+          items.push({
+            id: n.id,
+            label,
+            kind: isExternal ? 'external' : 'dag',
+            kindLabel: isExternal ? 'EXTERNAL' : (n.layer || 'dag').toUpperCase(),
+            sub: n.owner || n.layer || '',
+            score,
+          });
+        });
+        (DATA.resources || []).forEach(r => {
+          const hay = [r.id, r.label, r.kind, r.note || ''].join(' ').toLowerCase();
+          if (!hay.includes(q)) return;
+          const idLower = r.id.toLowerCase();
+          const labelLower = r.label.toLowerCase();
+          const score = (idLower.startsWith(q) || labelLower.startsWith(q)) ? 0
+            : ((idLower.includes(q) || labelLower.includes(q)) ? 1 : 2);
+          items.push({
+            id: 'res__' + r.id,
+            label: r.label,
+            kind: 'resource',
+            kindLabel: (r.kind || 'resource').toUpperCase(),
+            sub: r.note || '',
+            score,
+          });
+        });
+        items.sort((a, b) => a.score - b.score || a.label.localeCompare(b.label));
+        return items.slice(0, 15);
       }, [search]);
 
       // Compute related ids for highlight.
@@ -962,14 +1065,38 @@
           React.createElement('div', { className: 'search-box' },
             React.createElement('input', {
               className: 'search-input',
-              placeholder: '搜尋 dag_id / owner / 表名 / schema…',
+              placeholder: '搜尋 dag_id / owner / 表名 / 資源名稱…',
               value: search,
-              onChange: e => setSearch(e.target.value),
+              onChange: e => { setSearch(e.target.value); setSuggestOpen(true); setSuggestIdx(0); },
+              onFocus: () => { if (search.trim()) setSuggestOpen(true); },
+              onBlur: () => setTimeout(() => setSuggestOpen(false), 150),
+              onKeyDown: (e) => {
+                if (!suggestOpen || suggestions.length === 0) return;
+                if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestIdx(i => (i + 1) % suggestions.length); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestIdx(i => (i - 1 + suggestions.length) % suggestions.length); }
+                else if (e.key === 'Enter') { e.preventDefault(); const hit = suggestions[suggestIdx]; if (hit) { selectById(hit.id); setSuggestOpen(false); e.target.blur(); } }
+                else if (e.key === 'Escape') { setSuggestOpen(false); }
+              },
             }),
             search && React.createElement('button', {
               className: 'search-clear',
-              onClick: () => setSearch(''),
-            }, '×')
+              onMouseDown: e => e.preventDefault(),
+              onClick: () => { setSearch(''); setSuggestOpen(false); },
+            }, '×'),
+            suggestOpen && search.trim() && React.createElement('div', { className: 'search-suggestions' },
+              suggestions.length === 0
+                ? React.createElement('div', { className: 'suggestion-empty' }, '沒有符合的節點')
+                : suggestions.map((s, i) => React.createElement('div', {
+                    key: s.id,
+                    className: 'suggestion-item' + (i === suggestIdx ? ' active' : ''),
+                    onMouseDown: e => e.preventDefault(),
+                    onMouseEnter: () => setSuggestIdx(i),
+                    onClick: () => { selectById(s.id); setSuggestOpen(false); },
+                  },
+                    React.createElement('span', { className: `kind-tag ${s.kind}` }, s.kindLabel),
+                    React.createElement('span', { className: 'id' }, s.label),
+                  ))
+            )
           ),
           React.createElement('button', {
             className: 'reset-btn',
