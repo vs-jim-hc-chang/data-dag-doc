@@ -104,6 +104,24 @@
     }
     .suggestion-item:last-child { border-bottom: none; }
     .suggestion-item:hover, .suggestion-item.active { background: #e0f2fe; }
+    .suggestion-group-header {
+      padding: 6px 12px 4px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      background: #f8fafc;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .suggestion-group-header .count {
+      font-weight: 400;
+      color: #94a3b8;
+      margin-left: 4px;
+    }
     .suggestion-item .id {
       font-family: "SF Mono", Consolas, Monaco, monospace;
       font-weight: 500;
@@ -858,27 +876,31 @@
         return hits;
       }, [search]);
 
-      // Ranked suggestions for the dropdown (prefix matches first, then substring)
-      const suggestions = useMemo(() => {
+      // Ranked suggestions grouped by category (DAG / External / Resource kinds)
+      const suggestionGroups = useMemo(() => {
         const q = search.trim().toLowerCase();
         if (!q) return [];
-        const items = [];
+        const dagItems = [];
+        const externalItems = [];
+        const resourceItemsByKind = { db: [], api: [], storage: [], sink: [] };
+
         DATA.nodes.forEach(n => {
-          const idLower = n.id.toLowerCase();
-          const label = n.id;
-          const isExternal = n.layer === 'external';
           const hay = [n.id, n.owner || '', n.layer || '', n.file || '', ...(n.sources || []), ...(n.destinations || [])].join(' ').toLowerCase();
           if (!hay.includes(q)) return;
+          const idLower = n.id.toLowerCase();
           const score = idLower.startsWith(q) ? 0 : (idLower.includes(q) ? 1 : 2);
-          items.push({
+          const isExternal = n.layer === 'external';
+          const item = {
             id: n.id,
-            label,
+            label: n.id,
             kind: isExternal ? 'external' : 'dag',
             kindLabel: isExternal ? 'EXTERNAL' : (n.layer || 'dag').toUpperCase(),
             sub: n.owner || n.layer || '',
             score,
-          });
+          };
+          (isExternal ? externalItems : dagItems).push(item);
         });
+
         (DATA.resources || []).forEach(r => {
           const hay = [r.id, r.label, r.kind, r.note || ''].join(' ').toLowerCase();
           if (!hay.includes(q)) return;
@@ -886,7 +908,8 @@
           const labelLower = r.label.toLowerCase();
           const score = (idLower.startsWith(q) || labelLower.startsWith(q)) ? 0
             : ((idLower.includes(q) || labelLower.includes(q)) ? 1 : 2);
-          items.push({
+          const bucket = resourceItemsByKind[r.kind] || (resourceItemsByKind[r.kind] = []);
+          bucket.push({
             id: 'res__' + r.id,
             label: r.label,
             kind: 'resource',
@@ -895,9 +918,36 @@
             score,
           });
         });
-        items.sort((a, b) => a.score - b.score || a.label.localeCompare(b.label));
-        return items.slice(0, 15);
+
+        const sortItems = (arr) => arr.sort((a, b) => a.score - b.score || a.label.localeCompare(b.label));
+        sortItems(dagItems);
+        sortItems(externalItems);
+        Object.values(resourceItemsByKind).forEach(sortItems);
+
+        const groups = [];
+        if (dagItems.length) groups.push({ label: 'DAG', items: dagItems });
+        if (externalItems.length) groups.push({ label: 'External Process', items: externalItems });
+        if (resourceItemsByKind.db.length) groups.push({ label: 'Database', items: resourceItemsByKind.db });
+        if (resourceItemsByKind.api.length) groups.push({ label: 'API / External', items: resourceItemsByKind.api });
+        if (resourceItemsByKind.storage.length) groups.push({ label: 'Storage', items: resourceItemsByKind.storage });
+        if (resourceItemsByKind.sink.length) groups.push({ label: 'Write Endpoint', items: resourceItemsByKind.sink });
+
+        // Cap total items at 30 across groups
+        let remaining = 30;
+        for (const g of groups) {
+          if (g.items.length > remaining) g.items = g.items.slice(0, Math.max(0, remaining));
+          remaining -= g.items.length;
+          if (remaining <= 0) break;
+        }
+        return groups.filter(g => g.items.length);
       }, [search]);
+
+      // Flat list for keyboard navigation
+      const suggestions = useMemo(() => {
+        const flat = [];
+        suggestionGroups.forEach(g => g.items.forEach(it => flat.push(it)));
+        return flat;
+      }, [suggestionGroups]);
 
       // Compute related ids for highlight.
       // - DAG selected: BFS chain via DAG edges only + direct 1-hop resources
@@ -1086,16 +1136,31 @@
             suggestOpen && search.trim() && React.createElement('div', { className: 'search-suggestions' },
               suggestions.length === 0
                 ? React.createElement('div', { className: 'suggestion-empty' }, '沒有符合的節點')
-                : suggestions.map((s, i) => React.createElement('div', {
-                    key: s.id,
-                    className: 'suggestion-item' + (i === suggestIdx ? ' active' : ''),
-                    onMouseDown: e => e.preventDefault(),
-                    onMouseEnter: () => setSuggestIdx(i),
-                    onClick: () => { selectById(s.id); setSuggestOpen(false); },
-                  },
-                    React.createElement('span', { className: `kind-tag ${s.kind}` }, s.kindLabel),
-                    React.createElement('span', { className: 'id' }, s.label),
-                  ))
+                : (() => {
+                    let flatIdx = 0;
+                    const out = [];
+                    suggestionGroups.forEach((g, gi) => {
+                      out.push(React.createElement('div', {
+                        key: `hdr-${gi}`, className: 'suggestion-group-header',
+                      }, g.label,
+                        React.createElement('span', { className: 'count' }, `· ${g.items.length}`)
+                      ));
+                      g.items.forEach(s => {
+                        const idx = flatIdx++;
+                        out.push(React.createElement('div', {
+                          key: s.id,
+                          className: 'suggestion-item' + (idx === suggestIdx ? ' active' : ''),
+                          onMouseDown: e => e.preventDefault(),
+                          onMouseEnter: () => setSuggestIdx(idx),
+                          onClick: () => { selectById(s.id); setSuggestOpen(false); },
+                        },
+                          React.createElement('span', { className: `kind-tag ${s.kind}` }, s.kindLabel),
+                          React.createElement('span', { className: 'id' }, s.label),
+                        ));
+                      });
+                    });
+                    return out;
+                  })()
             )
           ),
           React.createElement('button', {
