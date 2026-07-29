@@ -1055,6 +1055,18 @@ window.GRAPH_DATA = {
       "external_task": "task_dependency_entity_insight_migration -> entity_insight_migration_completed"
     },
     {
+      "source": "emr_v2",
+      "target": "tbl__airsync__airsync_receiver_event",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "emr_v2",
+      "target": "tbl__airsync__airsync_sender_event",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__common__ip2location",
       "target": "entity_account",
       "kind": "table",
@@ -1067,16 +1079,34 @@ window.GRAPH_DATA = {
       "dep_type": "reads"
     },
     {
+      "source": "community",
+      "target": "tbl__community__community_account_badges",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__community__community_account_badges",
       "target": "target_audience_tags",
       "kind": "table",
       "dep_type": "reads"
     },
     {
+      "source": "community",
+      "target": "tbl__community__community_members_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__community__community_members_log",
       "target": "target_audience_tags",
       "kind": "table",
       "dep_type": "reads"
+    },
+    {
+      "source": "community",
+      "target": "tbl__community__community_posts_log",
+      "kind": "table",
+      "dep_type": "writes"
     },
     {
       "source": "event_session_companion",
@@ -1361,6 +1391,18 @@ window.GRAPH_DATA = {
       "dep_type": "reads"
     },
     {
+      "source": "device_relation",
+      "target": "tbl__device_manager__api_request_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "device_relation",
+      "target": "tbl__device_manager__app_action_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__device_manager__app_action_log",
       "target": "target_audience_tags",
       "kind": "table",
@@ -1374,18 +1416,60 @@ window.GRAPH_DATA = {
     },
     {
       "source": "device_relation",
+      "target": "tbl__device_manager__device_mac",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "device_relation",
       "target": "tbl__device_manager__dm_function_type",
       "kind": "table",
       "dep_type": "writes"
     },
     {
+      "source": "device_relation",
+      "target": "tbl__device_manager__launch_country_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "emr_v2",
+      "target": "tbl__edla__device_session_duration",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "event_session_instance",
+      "target": "tbl__edla__device_session_duration",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "email_alert_condition",
+      "target": "tbl__email_alert__alert_condition_device_turn_on",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "email_alert_condition",
+      "target": "tbl__email_alert__alert_condition_user_login",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "tbl__email_alert__alert_list_device_turn_on_90_v",
+      "target": "email_alert_condition",
+      "kind": "table",
+      "dep_type": "reads"
+    },
+    {
       "source": "tbl__email_alert__alert_list_device_turn_on_90_v",
       "target": "email_alert_list",
       "kind": "table",
       "dep_type": "reads"
     },
     {
-      "source": "tbl__email_alert__alert_list_device_turn_on_90_v",
+      "source": "tbl__email_alert__alert_list_user_login_90_v",
       "target": "email_alert_condition",
       "kind": "table",
       "dep_type": "reads"
@@ -1397,10 +1481,10 @@ window.GRAPH_DATA = {
       "dep_type": "reads"
     },
     {
-      "source": "tbl__email_alert__alert_list_user_login_90_v",
-      "target": "email_alert_condition",
+      "source": "email_campaign",
+      "target": "tbl__email_campaign__action",
       "kind": "table",
-      "dep_type": "reads"
+      "dep_type": "writes"
     },
     {
       "source": "email_campaign",
@@ -1411,6 +1495,12 @@ window.GRAPH_DATA = {
     {
       "source": "email_campaign",
       "target": "tbl__email_campaign__campaign_tags",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "email_campaign",
+      "target": "tbl__email_campaign__click_event_url",
       "kind": "table",
       "dep_type": "writes"
     },
@@ -1427,8 +1517,38 @@ window.GRAPH_DATA = {
       "dep_type": "writes"
     },
     {
+      "source": "email_campaign",
+      "target": "tbl__email_campaign__template",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "email_log",
+      "target": "tbl__email_log__account_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "email_log",
+      "target": "tbl__email_log__email_info",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "tbl__entity__entity_account_all",
+      "target": "Sales_Benchmark_ETL",
+      "kind": "table",
+      "dep_type": "reads"
+    },
+    {
       "source": "tbl__entity__entity_account_all",
       "target": "target_audience_tags",
+      "kind": "table",
+      "dep_type": "reads"
+    },
+    {
+      "source": "tbl__entity__entity_account_relation_all_mv",
+      "target": "Sales_Benchmark_ETL",
       "kind": "table",
       "dep_type": "reads"
     },
@@ -1437,6 +1557,30 @@ window.GRAPH_DATA = {
       "target": "target_audience_tags",
       "kind": "table",
       "dep_type": "reads"
+    },
+    {
+      "source": "tbl__entity__entity_account_relation_earliest_mv",
+      "target": "Sales_Benchmark_ETL",
+      "kind": "table",
+      "dep_type": "reads"
+    },
+    {
+      "source": "emr_v2",
+      "target": "tbl__ifp__ifp_viewboard_ux_agg",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "emr_v2",
+      "target": "tbl__ifp__launcher3_agg",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "appinsight_daily",
+      "target": "tbl__insight__insight_event_log",
+      "kind": "table",
+      "dep_type": "writes"
     },
     {
       "source": "entity_insight_prod_to_insight_event_log",
@@ -1457,10 +1601,28 @@ window.GRAPH_DATA = {
       "dep_type": "writes"
     },
     {
+      "source": "tbl__instance__instance_entity_account",
+      "target": "dags_dbt_instance",
+      "kind": "table",
+      "dep_type": "reads"
+    },
+    {
+      "source": "instance_relation",
+      "target": "tbl__instance__instance_info_modify_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__instance__instance_log",
       "target": "Sales_Benchmark_ETL",
       "kind": "table",
       "dep_type": "reads"
+    },
+    {
+      "source": "instance_android_launcher_device_entity",
+      "target": "tbl__instance__launcher_device_entity",
+      "kind": "table",
+      "dep_type": "writes"
     },
     {
       "source": "tbl__instance__launcher_device_entity",
@@ -1487,10 +1649,52 @@ window.GRAPH_DATA = {
       "dep_type": "writes"
     },
     {
+      "source": "event_session_instance",
+      "target": "tbl__instance__operation_event_windows_two_year_lower",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "event_session_instance",
+      "target": "tbl__instance__operation_session_android",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "event_session_instance_v3",
+      "target": "tbl__instance__operation_session_android_v3",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "event_session_instance",
+      "target": "tbl__instance__operation_session_flutter",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__instance__operation_session_flutter",
       "target": "target_audience_tags",
       "kind": "table",
       "dep_type": "reads"
+    },
+    {
+      "source": "event_session_instance_v3",
+      "target": "tbl__instance__operation_session_flutter_v3",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "event_session_instance",
+      "target": "tbl__instance__operation_session_windows",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "event_session_instance_v3",
+      "target": "tbl__instance__operation_session_windows_v3",
+      "kind": "table",
+      "dep_type": "writes"
     },
     {
       "source": "msp",
@@ -1511,10 +1715,22 @@ window.GRAPH_DATA = {
       "dep_type": "writes"
     },
     {
+      "source": "event_session_classroom_whiteboard",
+      "target": "tbl__mvb__operation_session_classroom",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__mvb__operation_session_classroom",
       "target": "target_audience_tags",
       "kind": "table",
       "dep_type": "reads"
+    },
+    {
+      "source": "event_session_classroom_whiteboard",
+      "target": "tbl__mvb__operation_session_whiteboard",
+      "kind": "table",
+      "dep_type": "writes"
     },
     {
       "source": "tbl__mvb__operation_session_whiteboard",
@@ -1533,6 +1749,12 @@ window.GRAPH_DATA = {
       "target": "Sales_Benchmark_ETL",
       "kind": "table",
       "dep_type": "reads"
+    },
+    {
+      "source": "myviewboard_com",
+      "target": "tbl__mvbcom__myviewboard_com_2",
+      "kind": "table",
+      "dep_type": "writes"
     },
     {
       "source": "tbl__oc_recommend__original_session_count_180_days_mv",
@@ -1649,13 +1871,19 @@ window.GRAPH_DATA = {
       "dep_type": "writes"
     },
     {
-      "source": "subscription",
+      "source": "tbl__public__eventdb_entity_log_all",
+      "target": "dags_dbt_users",
+      "kind": "table",
+      "dep_type": "reads"
+    },
+    {
+      "source": "event_tool_map",
       "target": "tbl__public__feature_label_list",
       "kind": "table",
       "dep_type": "writes"
     },
     {
-      "source": "event_tool_map",
+      "source": "subscription",
       "target": "tbl__public__feature_label_list",
       "kind": "table",
       "dep_type": "writes"
@@ -1691,6 +1919,12 @@ window.GRAPH_DATA = {
       "dep_type": "writes"
     },
     {
+      "source": "pbi_activity",
+      "target": "tbl__public__pbi_activity",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "daily_viewsonic_dataset_update",
       "target": "tbl__public__viewsonic_account",
       "kind": "table",
@@ -1701,6 +1935,24 @@ window.GRAPH_DATA = {
       "target": "tbl__public__viewsonic_entity",
       "kind": "table",
       "dep_type": "writes"
+    },
+    {
+      "source": "salesforce",
+      "target": "tbl__salesforce__entity_sales_relation",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "tbl__salesforce__entity_sales_relation",
+      "target": "Sales_Benchmark_ETL",
+      "kind": "table",
+      "dep_type": "reads"
+    },
+    {
+      "source": "tbl__salesforce__entity_update_all_time_v",
+      "target": "Sales_Benchmark_ETL",
+      "kind": "table",
+      "dep_type": "reads"
     },
     {
       "source": "subscription",
@@ -1733,16 +1985,118 @@ window.GRAPH_DATA = {
       "dep_type": "writes"
     },
     {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__board",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__board_collaborator",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__board_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__mvb_id_relation",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__teamwork_prod__mvb_id_relation",
       "target": "target_audience_tags",
       "kind": "table",
       "dep_type": "reads"
     },
     {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__project",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__project_collaborator",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__subscription_collaborator",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__subscription_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__subscription_users",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__team",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__team_collaborator",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__team_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "emr_v2",
+      "target": "tbl__teamwork_prod__teamwork_prod_event",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "teamwork",
+      "target": "tbl__teamwork_prod__teamwork_prod_event",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__teamwork_prod__teamwork_prod_event",
       "target": "target_audience_tags",
       "kind": "table",
       "dep_type": "reads"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__application",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__classroom_host",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__customer_type",
+      "kind": "table",
+      "dep_type": "writes"
     },
     {
       "source": "tbl__user_segmentation__customer_type",
@@ -1757,16 +2111,136 @@ window.GRAPH_DATA = {
       "dep_type": "reads"
     },
     {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__entity_application",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__user_segmentation__entity_device_active_temp",
       "target": "target_audience_tags",
       "kind": "table",
       "dep_type": "reads"
     },
     {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__entity_device_binded",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
       "source": "tbl__user_segmentation__entity_device_binded_temp",
       "target": "target_audience_tags",
       "kind": "table",
       "dep_type": "reads"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__entity_purpose",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__entity_type",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__manager_active",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__operation_role",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__original_content_engagement",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__sign_up_type",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__teamone_user_tags",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__teamone_utm",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__user_community_status",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__user_country",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__user_highest_badges",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__user_premium_tool",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__user_status",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "target_audience_tags",
+      "target": "tbl__user_segmentation__user_subscription",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "user_tag_v11",
+      "target": "tbl__user_tag__pg_now_data",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "user_tag_v11",
+      "target": "tbl__user_tag__user_tag_historical",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "user_tag_v11",
+      "target": "tbl__user_tag__user_tag_last_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "user_tag_v11",
+      "target": "tbl__user_tag__user_tag_now_data",
+      "kind": "table",
+      "dep_type": "writes"
     },
     {
       "source": "tbl__user_tag__user_tag_now_data",
@@ -1803,6 +2277,12 @@ window.GRAPH_DATA = {
       "target": "entity_insight_migration",
       "kind": "table",
       "dep_type": "reads"
+    },
+    {
+      "source": "account_related",
+      "target": "tbl__users__user_login",
+      "kind": "table",
+      "dep_type": "writes"
     },
     {
       "source": "viewsonic_migration",
@@ -1849,6 +2329,18 @@ window.GRAPH_DATA = {
     {
       "source": "viewsonic_migration",
       "target": "tbl__vs_account__login_log",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "viewsonic_migration",
+      "target": "tbl__vs_account__occupation",
+      "kind": "table",
+      "dep_type": "writes"
+    },
+    {
+      "source": "viewsonic_migration",
+      "target": "tbl__vs_account__system_account",
       "kind": "table",
       "dep_type": "writes"
     },
@@ -2460,7 +2952,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "emr_v2"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -2662,7 +3156,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "emr_v2"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -4987,7 +5483,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "community"
+      ],
       "reader_dags": [
         "target_audience_tags"
       ],
@@ -5101,7 +5599,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "community"
+      ],
       "reader_dags": [
         "target_audience_tags"
       ],
@@ -5314,7 +5814,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "community"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -17786,7 +18288,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "device_relation"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -17889,7 +18393,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "device_relation"
+      ],
       "reader_dags": [
         "target_audience_tags"
       ],
@@ -18671,7 +19177,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "device_relation"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -18953,7 +19461,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "device_relation"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -19047,7 +19557,10 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "emr_v2",
+        "event_session_instance"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -19141,7 +19654,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "email_alert_condition"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -19235,7 +19750,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "email_alert_condition"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -19251,8 +19768,8 @@ window.GRAPH_DATA = {
       "sample_error": null,
       "writer_dags": [],
       "reader_dags": [
-        "email_alert_list",
-        "email_alert_condition"
+        "email_alert_condition",
+        "email_alert_list"
       ],
       "dbt_model": null
     },
@@ -19268,8 +19785,8 @@ window.GRAPH_DATA = {
       "sample_error": null,
       "writer_dags": [],
       "reader_dags": [
-        "email_alert_list",
-        "email_alert_condition"
+        "email_alert_condition",
+        "email_alert_list"
       ],
       "dbt_model": null
     },
@@ -19542,7 +20059,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "email_campaign"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -19792,7 +20311,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "email_campaign"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -20069,7 +20590,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "email_campaign"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -20163,7 +20686,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "email_log"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -20230,7 +20755,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "email_log"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -20308,6 +20835,7 @@ window.GRAPH_DATA = {
       "sample_error": null,
       "writer_dags": [],
       "reader_dags": [
+        "Sales_Benchmark_ETL",
         "target_audience_tags"
       ],
       "dbt_model": null
@@ -20395,6 +20923,7 @@ window.GRAPH_DATA = {
       "sample_error": null,
       "writer_dags": [],
       "reader_dags": [
+        "Sales_Benchmark_ETL",
         "target_audience_tags"
       ],
       "dbt_model": null
@@ -20445,7 +20974,9 @@ window.GRAPH_DATA = {
       ],
       "sample_error": null,
       "writer_dags": [],
-      "reader_dags": [],
+      "reader_dags": [
+        "Sales_Benchmark_ETL"
+      ],
       "dbt_model": null
     },
     "tbl__ifp__ifp_viewboard_ux_agg": {
@@ -20556,7 +21087,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "emr_v2"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -20713,7 +21246,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "emr_v2"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -20923,6 +21458,7 @@ window.GRAPH_DATA = {
       ],
       "sample_error": null,
       "writer_dags": [
+        "appinsight_daily",
         "entity_insight_prod_to_insight_event_log"
       ],
       "reader_dags": [],
@@ -22137,7 +22673,9 @@ window.GRAPH_DATA = {
       "writer_dags": [
         "instance_relation"
       ],
-      "reader_dags": [],
+      "reader_dags": [
+        "dags_dbt_instance"
+      ],
       "dbt_model": null
     },
     "tbl__instance__instance_entity_account_all_mv": {
@@ -22796,7 +23334,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "instance_relation"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -23044,7 +23584,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "instance_android_launcher_device_entity"
+      ],
       "reader_dags": [
         "entity_insight_migration"
       ],
@@ -23615,7 +24157,8 @@ window.GRAPH_DATA = {
       ],
       "sample_error": null,
       "writer_dags": [
-        "dags_dbt_instance"
+        "dags_dbt_instance",
+        "event_session_instance"
       ],
       "reader_dags": [],
       "dbt_model": {
@@ -23841,7 +24384,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "event_session_instance"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -23944,7 +24489,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "event_session_instance_v3"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -24047,7 +24594,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "event_session_instance"
+      ],
       "reader_dags": [
         "target_audience_tags"
       ],
@@ -24152,7 +24701,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "event_session_instance_v3"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -24255,7 +24806,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "event_session_instance"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -24358,7 +24911,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "event_session_instance_v3"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -25903,7 +26458,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "event_session_classroom_whiteboard"
+      ],
       "reader_dags": [
         "target_audience_tags"
       ],
@@ -25999,7 +26556,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "event_session_classroom_whiteboard"
+      ],
       "reader_dags": [
         "target_audience_tags"
       ],
@@ -26305,7 +26864,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "myviewboard_com"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -29670,7 +30231,9 @@ window.GRAPH_DATA = {
       "writer_dags": [
         "viewsonic_migration"
       ],
-      "reader_dags": [],
+      "reader_dags": [
+        "dags_dbt_users"
+      ],
       "dbt_model": null
     },
     "tbl__public__feature_label_list": {
@@ -29719,8 +30282,8 @@ window.GRAPH_DATA = {
       ],
       "sample_error": null,
       "writer_dags": [
-        "subscription",
-        "event_tool_map"
+        "event_tool_map",
+        "subscription"
       ],
       "reader_dags": [
         "target_audience_tags"
@@ -30411,7 +30974,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "pbi_activity"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -31283,8 +31848,12 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
-      "reader_dags": [],
+      "writer_dags": [
+        "salesforce"
+      ],
+      "reader_dags": [
+        "Sales_Benchmark_ETL"
+      ],
       "dbt_model": null
     },
     "tbl__salesforce__entity_update_all_time_v": {
@@ -31324,7 +31893,9 @@ window.GRAPH_DATA = {
       ],
       "sample_error": null,
       "writer_dags": [],
-      "reader_dags": [],
+      "reader_dags": [
+        "Sales_Benchmark_ETL"
+      ],
       "dbt_model": null
     },
     "tbl__subscription__entity_subscription": {
@@ -32205,7 +32776,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -32281,7 +32854,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -32429,7 +33004,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -32563,7 +33140,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [
         "target_audience_tags"
       ],
@@ -32641,7 +33220,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -32717,7 +33298,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -32891,7 +33474,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -32967,7 +33552,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -33043,7 +33630,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -33101,7 +33690,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -33177,7 +33768,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -33289,7 +33882,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "teamwork"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -33630,7 +34225,10 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "emr_v2",
+        "teamwork"
+      ],
       "reader_dags": [
         "target_audience_tags"
       ],
@@ -34259,7 +34857,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -34290,7 +34890,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -34330,7 +34932,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [
         "target_audience_tags"
       ],
@@ -34414,7 +35018,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -34496,7 +35102,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -34649,7 +35257,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -34689,7 +35299,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -34738,7 +35350,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -34778,7 +35392,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -34818,7 +35434,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -34858,7 +35476,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -34965,7 +35585,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35050,7 +35672,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35090,7 +35714,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35139,7 +35765,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35179,7 +35807,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35210,7 +35840,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35250,7 +35882,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35299,7 +35933,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "target_audience_tags"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35357,7 +35993,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "user_tag_v11"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35568,7 +36206,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "user_tag_v11"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35617,7 +36257,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "user_tag_v11"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -35675,7 +36317,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "user_tag_v11"
+      ],
       "reader_dags": [
         "target_audience_tags"
       ],
@@ -36815,7 +37459,9 @@ window.GRAPH_DATA = {
         }
       ],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "account_related"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -37424,7 +38070,9 @@ window.GRAPH_DATA = {
       ],
       "examples": [],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "viewsonic_migration"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
@@ -37457,7 +38105,9 @@ window.GRAPH_DATA = {
       ],
       "examples": [],
       "sample_error": null,
-      "writer_dags": [],
+      "writer_dags": [
+        "viewsonic_migration"
+      ],
       "reader_dags": [],
       "dbt_model": null
     },
