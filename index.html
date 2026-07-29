@@ -144,6 +144,7 @@
     .suggestion-item .kind-tag.dag { background: #dbeafe; color: #1e40af; }
     .suggestion-item .kind-tag.resource { background: #ede9fe; color: #6d28d9; }
     .suggestion-item .kind-tag.external { background: #fef3c7; color: #b45309; }
+    .suggestion-item .kind-tag.table { background: #f1f5f9; color: #475569; font-family: "SF Mono", Consolas, monospace; }
     .suggestion-item mark {
       background: #fde68a;
       color: #78350f;
@@ -369,6 +370,163 @@
     .kind-storage { background: #1e40af; }
     .kind-sink    { background: #ea580c; }
 
+    /* Table nodes (compact) */
+    .rf-table {
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 10.5px;
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      background: #f1f5f9;
+      color: #1e293b;
+      border: 1px solid #cbd5e1;
+      cursor: pointer;
+      width: 150px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      transition: box-shadow 0.15s, background 0.15s;
+    }
+    .rf-table:hover { background: #e0f2fe; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+    .rf-table.selected { border-color: #0ea5e9 !important; background: #dbeafe; }
+    .rf-table.upstream { border-color: #059669 !important; background: #dcfce7; }
+    .rf-table.downstream { border-color: #f59e0b !important; background: #ffedd5; }
+    .rf-table.dimmed { opacity: 0.25; }
+    .rf-table-label { line-height: 1; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Schema group container */
+    .rf-schema-group {
+      background: rgba(241, 245, 249, 0.55);
+      border: 1px dashed #94a3b8;
+      border-radius: 6px;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      pointer-events: none;
+    }
+    .rf-schema-group.has-selected { border-color: #0ea5e9; background: rgba(219, 234, 254, 0.35); }
+    .rf-schema-title {
+      position: absolute;
+      top: 6px;
+      left: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      letter-spacing: 0.3px;
+      font-family: system-ui, sans-serif;
+      background: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid #cbd5e1;
+    }
+    .rf-schema-count { color: #94a3b8; font-weight: 400; }
+
+    /* React Flow parent nodes need to render behind children */
+    .react-flow__node-schemaGroup { z-index: -1; }
+
+    /* Table detail modal */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      z-index: 1000;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 40px 20px;
+      overflow-y: auto;
+    }
+    .modal {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 1100px;
+      max-height: calc(100vh - 80px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f8fafc;
+    }
+    .modal-header h2 {
+      margin: 0;
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      font-size: 18px;
+      color: #0f172a;
+      flex: 1;
+      word-break: break-all;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #94a3b8;
+      padding: 0 8px;
+    }
+    .modal-close:hover { color: #0f172a; }
+    .modal-body {
+      padding: 16px 24px 24px 24px;
+      overflow-y: auto;
+    }
+    .modal-section-label {
+      font-size: 11px; font-weight: 700; color: #64748b;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin: 16px 0 8px 0;
+    }
+    .modal-section-label:first-child { margin-top: 4px; }
+    .modal-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .modal-lineage-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      margin: 2px 4px 2px 0;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: "SF Mono", Consolas, Monaco, monospace;
+      background: #dbeafe;
+      color: #1e40af;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .modal-lineage-tag:hover { border-color: #0284c7; background: #bfdbfe; }
+    .modal-columns {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .modal-columns th, .modal-columns td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      text-align: left;
+      vertical-align: top;
+    }
+    .modal-columns th {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #475569;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      position: sticky; top: 0;
+    }
+    .modal-columns td.col-name { font-family: "SF Mono", Consolas, Monaco, monospace; font-weight: 500; color: #0f172a; white-space: nowrap; }
+    .modal-columns td.col-type { font-family: "SF Mono", Consolas, Monaco, monospace; color: #7c3aed; font-size: 11px; }
+    .modal-columns td.col-example { font-family: "SF Mono", Consolas, Monaco, monospace; color: #334155; font-size: 11px; word-break: break-all; max-width: 240px; }
+    .modal-columns td.col-nullable { font-size: 10px; color: #94a3b8; }
+    .modal-notice {
+      background: #fef3c7; color: #78350f;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
     /* Legend */
     .legend {
       position: absolute;
@@ -436,6 +594,18 @@
     .react-flow__edge.resource-edge .react-flow__edge-path { stroke: #94a3b8; stroke-width: 1.4; stroke-dasharray: 5,4; }
     .react-flow__edge.resource-edge.upstream-edge .react-flow__edge-path { stroke: #059669; stroke-dasharray: 5,4; stroke-width: 2.5; }
     .react-flow__edge.resource-edge.downstream-edge .react-flow__edge-path { stroke: #f59e0b; stroke-dasharray: 5,4; stroke-width: 2.5; }
+    /* Table edges: hidden by default, only shown when related to selection */
+    .react-flow__edge.table-edge { display: none; }
+    .react-flow__edge.table-edge.upstream-edge,
+    .react-flow__edge.table-edge.downstream-edge {
+      display: block;
+    }
+    .react-flow__edge.table-edge.upstream-edge .react-flow__edge-path {
+      stroke: #059669; stroke-dasharray: 2,3; stroke-width: 2;
+    }
+    .react-flow__edge.table-edge.downstream-edge .react-flow__edge-path {
+      stroke: #f59e0b; stroke-dasharray: 2,3; stroke-width: 2;
+    }
     .react-flow__edge-text { font-size: 11px; font-family: system-ui, sans-serif; fill: #334155; font-weight: 500; }
     .react-flow__edge-textbg { fill: white; }
   </style>
@@ -477,33 +647,122 @@
 
     // Layout with dagre — everything in one layered LR graph so resources cluster at the edges
     function layoutGraph(nodes, edges) {
-      const NW = 200, NH = 60;
-      const RW = 180, RH = 60;
+      const NW = 200, NH = 60;   // DAG
+      const RW = 180, RH = 60;   // resource
+      const TW = 150, TH = 24;   // table
+      const TGAP_X = 10, TGAP_Y = 6;
+      const SCH_PAD_X = 16, SCH_PAD_Y = 42, SCH_PAD_BOTTOM = 16;
+      const SCH_COLS_PER_ROW = 4;   // schema groups packed in 4-col grid
+      const SCH_GAP = 60;
+
+      const groupNodes = nodes.filter(n => n.data.__kind === 'schema');
+      const tableNodes = nodes.filter(n => n.data.__kind === 'table');
+      const dagResourceNodes = nodes.filter(n => !n.data.__kind || (n.data.__kind !== 'schema' && n.data.__kind !== 'table'));
+
+      // ---- Phase 1: layout DAGs + resources with dagre ----
       const g = new dagre.graphlib.Graph();
       g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 130, marginx: 20, marginy: 20, ranker: 'network-simplex' });
       g.setDefaultEdgeLabel(() => ({}));
-
-      nodes.forEach(n => {
+      dagResourceNodes.forEach(n => {
         const isRes = n.data.__kind === 'resource';
         g.setNode(n.id, { width: isRes ? RW : NW, height: isRes ? RH : NH });
       });
-      edges.forEach(e => g.setEdge(e.source, e.target));
+      // Only include DAG/resource edges in this layout (not table edges)
+      edges.forEach(e => {
+        if (e.data && e.data.__kind === 'table') return;
+        if (g.node(e.source) && g.node(e.target)) g.setEdge(e.source, e.target);
+      });
       dagre.layout(g);
 
-      return nodes.map(n => {
+      let dagMaxX = 0, dagMaxY = 0, dagMinY = Infinity;
+      dagResourceNodes.forEach(n => {
         const info = g.node(n.id);
-        if (!info) {
-          return { ...n, position: { x: 0, y: 0 }, sourcePosition: 'right', targetPosition: 'left' };
+        if (info) {
+          dagMaxX = Math.max(dagMaxX, info.x + (n.data.__kind === 'resource' ? RW : NW) / 2);
+          dagMaxY = Math.max(dagMaxY, info.y + (n.data.__kind === 'resource' ? RH : NH) / 2);
+          dagMinY = Math.min(dagMinY, info.y - (n.data.__kind === 'resource' ? RH : NH) / 2);
         }
+      });
+      if (dagMinY === Infinity) dagMinY = 0;
+
+      const positionedDagResource = dagResourceNodes.map(n => {
+        const info = g.node(n.id);
+        if (!info) return { ...n, position: { x: 0, y: 0 }, sourcePosition: 'right', targetPosition: 'left' };
         const w = n.data.__kind === 'resource' ? RW : NW;
         const h = n.data.__kind === 'resource' ? RH : NH;
+        return { ...n, position: { x: info.x - w / 2, y: info.y - h / 2 }, sourcePosition: 'right', targetPosition: 'left' };
+      });
+
+      // ---- Phase 2: layout schema groups + tables (grid inside each group, groups in 2D grid) ----
+      // Sort schemas by table count descending
+      const sortedGroups = [...groupNodes].sort((a, b) => b.data.tables.length - a.data.tables.length);
+
+      // Compute each group's size (based on table count + grid cols)
+      const groupSizes = new Map();
+      sortedGroups.forEach(g0 => {
+        const n = g0.data.tables.length;
+        const cols = Math.min(n, 3);   // 3 tables per row inside a schema
+        const rows = Math.ceil(n / cols);
+        const w = SCH_PAD_X * 2 + cols * TW + (cols - 1) * TGAP_X;
+        const h = SCH_PAD_Y + rows * TH + (rows - 1) * TGAP_Y + SCH_PAD_BOTTOM;
+        groupSizes.set(g0.id, { w, h, cols, rows });
+      });
+
+      // Position schemas in a 2D grid to the right of DAG area
+      const areaStartX = dagMaxX + 200;
+      const areaStartY = dagMinY;
+      const groupPos = new Map();
+      let curX = areaStartX, curY = areaStartY, rowMaxH = 0, colInRow = 0;
+      sortedGroups.forEach(g0 => {
+        const { w, h } = groupSizes.get(g0.id);
+        if (colInRow >= SCH_COLS_PER_ROW) {
+          curX = areaStartX;
+          curY += rowMaxH + SCH_GAP;
+          rowMaxH = 0;
+          colInRow = 0;
+        }
+        groupPos.set(g0.id, { x: curX, y: curY, w, h });
+        curX += w + SCH_GAP;
+        rowMaxH = Math.max(rowMaxH, h);
+        colInRow += 1;
+      });
+
+      const positionedGroups = sortedGroups.map(g0 => {
+        const p = groupPos.get(g0.id);
         return {
-          ...n,
-          position: { x: info.x - w / 2, y: info.y - h / 2 },
-          sourcePosition: 'right',
-          targetPosition: 'left',
+          ...g0,
+          type: 'schemaGroup',
+          position: { x: p.x, y: p.y },
+          style: { width: p.w, height: p.h },
+          // draggable false; groups purely visual
+          selectable: false,
+          draggable: false,
         };
       });
+
+      // Position table nodes relative to their parent group (using parent-local coords)
+      const positionedTables = [];
+      sortedGroups.forEach(g0 => {
+        const { cols } = groupSizes.get(g0.id);
+        g0.data.tables.forEach((tid, idx) => {
+          const col = idx % cols;
+          const row = Math.floor(idx / cols);
+          const localX = SCH_PAD_X + col * (TW + TGAP_X);
+          const localY = SCH_PAD_Y + row * (TH + TGAP_Y);
+          const tnode = tableNodes.find(t => t.id === tid);
+          if (tnode) {
+            positionedTables.push({
+              ...tnode,
+              type: 'tableNode',
+              position: { x: localX, y: localY },
+              sourcePosition: 'right',
+              targetPosition: 'left',
+            });
+          }
+        });
+      });
+
+      return [...positionedGroups, ...positionedDagResource, ...positionedTables];
     }
 
     function buildBase() {
@@ -558,9 +817,49 @@
         });
       });
 
+      // Table nodes (grouped by schema)
+      const tables = DATA.tables || {};
+      const schemaGroups = {};
+      const tableNodes = [];
+      const tableEdges = [];
+
+      Object.entries(tables).forEach(([tid, t]) => {
+        const groupId = `schema__${t.schema}`;
+        if (!schemaGroups[groupId]) {
+          schemaGroups[groupId] = {
+            id: groupId,
+            data: { __kind: 'schema', schema: t.schema, tables: [] },
+          };
+        }
+        schemaGroups[groupId].data.tables.push(tid);
+        tableNodes.push({
+          id: tid,
+          data: { ...t, __kind: 'table' },
+          parentId: groupId,
+          extent: 'parent',
+        });
+      });
+
+      // Reset edge counter for table edges
+      (DATA.edges || []).forEach((e, i) => {
+        if (e.kind === 'table') {
+          tableEdges.push({
+            id: `te__${e.source}__${e.target}__${i}`,
+            source: e.source,
+            target: e.target,
+            data: { __kind: 'table', source: e.source, target: e.target, dep_type: e.dep_type },
+            type: 'smoothstep',
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 12, height: 12 },
+          });
+        }
+      });
+
       return {
-        nodes: [...dagNodes, ...resourceNodes],
-        edges: [...dagEdges, ...resEdges],
+        nodes: [
+          ...Object.values(schemaGroups),
+          ...dagNodes, ...resourceNodes, ...tableNodes,
+        ],
+        edges: [...dagEdges, ...resEdges, ...tableEdges],
       };
     }
 
@@ -616,7 +915,44 @@
       );
     }
 
-    const nodeTypes = { dagNode: DagNode, resourceNode: ResourceNode };
+    function TableNode({ data }) {
+      const cls = ['rf-table'];
+      if (data.__selected) cls.push('selected');
+      if (data.__upstream) cls.push('upstream');
+      if (data.__downstream) cls.push('downstream');
+      if (data.__dimmed) cls.push('dimmed');
+      return React.createElement('div', { className: cls.join(' '), title: data.full_name },
+        React.createElement(Handle, {
+          type: 'target', position: Position.Left,
+          style: { background: '#cbd5e1', width: 6, height: 6, border: 'none' },
+          isConnectable: false,
+        }),
+        React.createElement('div', { className: 'rf-table-label' }, data.name),
+        React.createElement(Handle, {
+          type: 'source', position: Position.Right,
+          style: { background: '#cbd5e1', width: 6, height: 6, border: 'none' },
+          isConnectable: false,
+        }),
+      );
+    }
+
+    function SchemaGroupNode({ data }) {
+      const cls = ['rf-schema-group'];
+      if (data.__hasSelected) cls.push('has-selected');
+      return React.createElement('div', { className: cls.join(' ') },
+        React.createElement('div', { className: 'rf-schema-title' },
+          data.schema,
+          React.createElement('span', { className: 'rf-schema-count' }, ` · ${data.tables.length}`),
+        ),
+      );
+    }
+
+    const nodeTypes = {
+      dagNode: DagNode,
+      resourceNode: ResourceNode,
+      tableNode: TableNode,
+      schemaGroup: SchemaGroupNode,
+    };
 
     function ResourceDetailPanel({ node, onSelect, edges, allNodes }) {
       const d = node.data;
@@ -689,6 +1025,12 @@
       }
       if (node.data.__kind === 'resource') {
         return React.createElement(ResourceDetailPanel, { node, onSelect, edges, allNodes });
+      }
+      if (node.data.__kind === 'table' || node.data.__kind === 'schema') {
+        // Tables use the modal; schemas have no detail panel
+        return React.createElement('div', { className: 'detail-empty' },
+          node.data.__kind === 'table' ? '表級詳細資料在 modal 顯示' : 'Schema group — 點選內部 table'
+        );
       }
       const d = node.data;
       // Only DAG-to-DAG dependencies in this panel
@@ -873,16 +1215,23 @@
           const hay = [r.id, r.label, r.kind, r.note || ''].join(' ').toLowerCase();
           if (hay.includes(q)) hits.add('res__' + r.id);
         });
+        // Tables: match schema, table name, full_name, and any column name
+        Object.entries(DATA.tables || {}).forEach(([tid, t]) => {
+          const colNames = (t.columns || []).map(c => c.name).join(' ');
+          const hay = [t.schema, t.name, t.full_name, colNames].join(' ').toLowerCase();
+          if (hay.includes(q)) hits.add(tid);
+        });
         return hits;
       }, [search]);
 
-      // Ranked suggestions grouped by category (DAG / External / Resource kinds)
+      // Ranked suggestions grouped by category (DAG / External / Resource kinds / Table)
       const suggestionGroups = useMemo(() => {
         const q = search.trim().toLowerCase();
         if (!q) return [];
         const dagItems = [];
         const externalItems = [];
         const resourceItemsByKind = { db: [], api: [], storage: [], sink: [] };
+        const tableItems = [];
 
         DATA.nodes.forEach(n => {
           const hay = [n.id, n.owner || '', n.layer || '', n.file || '', ...(n.sources || []), ...(n.destinations || [])].join(' ').toLowerCase();
@@ -919,10 +1268,31 @@
           });
         });
 
+        // Tables — match schema, name, full_name, columns
+        Object.entries(DATA.tables || {}).forEach(([tid, t]) => {
+          const colNames = (t.columns || []).map(c => c.name).join(' ');
+          const hay = [t.schema, t.name, t.full_name, colNames].join(' ').toLowerCase();
+          if (!hay.includes(q)) return;
+          const nameLower = t.name.toLowerCase();
+          const schemaLower = t.schema.toLowerCase();
+          const fullLower = t.full_name.toLowerCase();
+          const score = (nameLower.startsWith(q) || schemaLower.startsWith(q) || fullLower.startsWith(q)) ? 0
+            : ((nameLower.includes(q) || fullLower.includes(q)) ? 1 : 2);
+          tableItems.push({
+            id: tid,
+            label: t.full_name,
+            kind: 'table',
+            kindLabel: t.schema.toUpperCase(),
+            sub: `${t.columns?.length || 0} cols · ${(t.row_count_approx || 0).toLocaleString()} rows`,
+            score,
+          });
+        });
+
         const sortItems = (arr) => arr.sort((a, b) => a.score - b.score || a.label.localeCompare(b.label));
         sortItems(dagItems);
         sortItems(externalItems);
         Object.values(resourceItemsByKind).forEach(sortItems);
+        sortItems(tableItems);
 
         const groups = [];
         if (dagItems.length) groups.push({ label: 'DAG', items: dagItems });
@@ -931,9 +1301,10 @@
         if (resourceItemsByKind.api.length) groups.push({ label: 'API / External', items: resourceItemsByKind.api });
         if (resourceItemsByKind.storage.length) groups.push({ label: 'Storage', items: resourceItemsByKind.storage });
         if (resourceItemsByKind.sink.length) groups.push({ label: 'Write Endpoint', items: resourceItemsByKind.sink });
+        if (tableItems.length) groups.push({ label: `Table (${tableItems.length})`, items: tableItems });
 
-        // Cap total items at 30 across groups
-        let remaining = 30;
+        // Cap total items at 40 across groups
+        let remaining = 40;
         for (const g of groups) {
           if (g.items.length > remaining) g.items = g.items.slice(0, Math.max(0, remaining));
           remaining -= g.items.length;
@@ -950,12 +1321,14 @@
       }, [suggestionGroups]);
 
       // Compute related ids for highlight.
-      // - DAG selected: BFS chain via DAG edges only + direct 1-hop resources
+      // - DAG selected: BFS chain via DAG edges only + direct 1-hop resources + direct tables
       // - Resource selected: only direct 1-hop DAGs (writers = upstream, readers = downstream)
+      // - Table selected: only direct 1-hop DAG writers/readers
       const related = useMemo(() => {
         if (!selectedId) return { up: new Set(), down: new Set() };
 
         const isResource = selectedId.startsWith('res__');
+        const isTable = selectedId.startsWith('tbl__');
         const up = new Set();
         const down = new Set();
 
@@ -964,6 +1337,15 @@
             if (e.data.__kind !== 'resource') return;
             if (e.target === selectedId) up.add(e.source);     // writer → resource
             if (e.source === selectedId) down.add(e.target);   // resource → reader
+          });
+          return { up, down };
+        }
+
+        if (isTable) {
+          base.edges.forEach(e => {
+            if (e.data.__kind !== 'table') return;
+            if (e.target === selectedId) up.add(e.source);     // DAG writer
+            if (e.source === selectedId) down.add(e.target);   // DAG reader
           });
           return { up, down };
         }
@@ -994,24 +1376,38 @@
         }
         // Direct 1-hop resources of the selected DAG
         base.edges.forEach(e => {
-          if (e.data.__kind !== 'resource') return;
-          if (e.target === selectedId) up.add(e.source);       // reads from resource
-          if (e.source === selectedId) down.add(e.target);     // writes to resource
+          if (e.data.__kind === 'resource') {
+            if (e.target === selectedId) up.add(e.source);       // reads from resource
+            if (e.source === selectedId) down.add(e.target);     // writes to resource
+          } else if (e.data.__kind === 'table') {
+            if (e.source === selectedId) down.add(e.target);     // DAG writes table
+            if (e.target === selectedId) up.add(e.source);       // DAG reads table
+          }
         });
         return { up, down };
       }, [selectedId, base.edges]);
 
       const nodes = useMemo(() => {
         return layouted.map(n => {
+          const kind = n.data.__kind;
+          if (kind === 'schema') {
+            // Schema groups: highlight border if any child is upstream/downstream/selected
+            const hasSelected = n.data.tables && n.data.tables.some(tid =>
+              tid === selectedId || related.up.has(tid) || related.down.has(tid)
+            );
+            return { ...n, type: 'schemaGroup', data: { ...n.data, __hasSelected: hasSelected } };
+          }
           const isSel = selectedId === n.id;
           const isUp = related.up.has(n.id);
           const isDown = related.down.has(n.id);
           const searchHit = matchIds ? matchIds.has(n.id) : true;
           const dimmed = (!!selectedId && !isSel && !isUp && !isDown) || (matchIds && !searchHit);
-          const isResource = n.data.__kind === 'resource';
+          let type = 'dagNode';
+          if (kind === 'resource') type = 'resourceNode';
+          else if (kind === 'table') type = 'tableNode';
           return {
             ...n,
-            type: isResource ? 'resourceNode' : 'dagNode',
+            type,
             data: {
               ...n.data,
               __selected: isSel,
@@ -1025,22 +1421,32 @@
 
       const edges = useMemo(() => {
         const isSelectedResource = selectedId && selectedId.startsWith('res__');
+        const isSelectedTable = selectedId && selectedId.startsWith('tbl__');
         return base.edges.map(e => {
           const isResourceEdge = e.data.__kind === 'resource';
+          const isTableEdge = e.data.__kind === 'table';
           let upEdge = false;
           let downEdge = false;
 
           if (selectedId) {
             if (isSelectedResource) {
-              // Resource selected: only highlight edges directly touching it (all are resource edges)
-              if (e.target === selectedId) upEdge = true;         // writer DAG → this resource
-              else if (e.source === selectedId) downEdge = true;  // this resource → reader DAG
+              if (isResourceEdge) {
+                if (e.target === selectedId) upEdge = true;
+                else if (e.source === selectedId) downEdge = true;
+              }
+            } else if (isSelectedTable) {
+              if (isTableEdge) {
+                if (e.target === selectedId) upEdge = true;         // DAG → this table
+                else if (e.source === selectedId) downEdge = true;  // this table → DAG
+              }
             } else {
               // DAG selected
               if (isResourceEdge) {
-                // Resource edge: only when it touches the selected DAG
-                if (e.target === selectedId) upEdge = true;       // resource → selected DAG (reads from)
-                else if (e.source === selectedId) downEdge = true; // selected DAG → resource (writes to)
+                if (e.target === selectedId) upEdge = true;
+                else if (e.source === selectedId) downEdge = true;
+              } else if (isTableEdge) {
+                if (e.source === selectedId) downEdge = true;       // DAG writes to table
+                else if (e.target === selectedId) upEdge = true;    // DAG reads from table
               } else {
                 // DAG-DAG edge: BFS chain result
                 upEdge = related.up.has(e.source) && (related.up.has(e.target) || e.target === selectedId);
@@ -1051,19 +1457,20 @@
 
           const cls = [];
           if (isResourceEdge) cls.push('resource-edge');
+          if (isTableEdge) cls.push('table-edge');
           if (upEdge) cls.push('upstream-edge');
           else if (downEdge) cls.push('downstream-edge');
           else if (selectedId) cls.push('dimmed');
 
-          let markerColor = isResourceEdge ? '#94a3b8' : '#475569';
+          let markerColor = isResourceEdge ? '#94a3b8' : (isTableEdge ? '#94a3b8' : '#475569');
           if (upEdge) markerColor = '#059669';
           else if (downEdge) markerColor = '#f59e0b';
 
-          const showLabel = !isResourceEdge && (upEdge || downEdge);
+          const showLabel = !isResourceEdge && !isTableEdge && (upEdge || downEdge);
           return {
             ...e,
             className: cls.join(' '),
-            markerEnd: { type: MarkerType.ArrowClosed, color: markerColor, width: isResourceEdge ? 16 : 20, height: isResourceEdge ? 16 : 20 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: markerColor, width: isResourceEdge ? 16 : (isTableEdge ? 12 : 20), height: isResourceEdge ? 16 : (isTableEdge ? 12 : 20) },
             label: showLabel && e.data.external_task ? e.data.external_task.split(' -> ').pop() : undefined,
             labelBgPadding: [4, 2],
             labelBgBorderRadius: 3,
@@ -1075,7 +1482,17 @@
 
       const selectedNode = selectedId ? nodes.find(n => n.id === selectedId) : null;
 
+      // Table modal is a separate popup — only shown when a table node is clicked
+      const [modalTableId, setModalTableId] = useState(null);
+      const modalTable = modalTableId ? nodes.find(n => n.id === modalTableId)?.data : null;
+
       const onNodeClick = useCallback((_, node) => {
+        if (node.data?.__kind === 'schema') return;   // group is not selectable
+        if (node.data?.__kind === 'table') {
+          setModalTableId(node.id);
+          setSelectedId(node.id);
+          return;
+        }
         setSelectedId(node.id);
       }, []);
 
@@ -1085,6 +1502,7 @@
 
       const selectById = useCallback((id) => {
         setSelectedId(id);
+        if (id && id.startsWith('tbl__')) setModalTableId(id);
         // Focus on node
         const n = layouted.find(x => x.id === id);
         if (n && rf) {
@@ -1103,8 +1521,8 @@
       }, [matchIds, rf, layouted]);
 
       const resCount = (DATA.resources || []).length;
-      const resEdgeCount = base.edges.filter(e => e.data.__kind === 'resource').length;
-      const stats = `${DATA.nodes.length} DAGs · ${resCount} resources · ${DATA.edges.length + resEdgeCount} edges` +
+      const tblCount = Object.keys(DATA.tables || {}).length;
+      const stats = `${DATA.nodes.length} DAGs · ${resCount} resources · ${tblCount} tables · ${base.edges.length} edges` +
         (matchIds ? ` · ${matchIds.size} match` : '');
 
       return React.createElement(React.Fragment, null,
@@ -1217,8 +1635,103 @@
               allNodes: base.nodes,
             })
           ),
+        ),
+        modalTable && React.createElement(TableModal, {
+          table: modalTable,
+          onClose: () => setModalTableId(null),
+          onSelectDag: (id) => { setModalTableId(null); selectById(id); },
+        }),
+      );
+    }
+
+    function TableModal({ table, onClose, onSelectDag }) {
+      const cols = table.columns || [];
+      const examples = table.examples || [];
+      const writers = table.writer_dags || [];
+      const readers = table.reader_dags || [];
+      return React.createElement('div', {
+        className: 'modal-backdrop',
+        onClick: (e) => { if (e.target === e.currentTarget) onClose(); },
+      },
+        React.createElement('div', { className: 'modal', onClick: e => e.stopPropagation() },
+          React.createElement('div', { className: 'modal-header' },
+            React.createElement('h2', null, table.full_name),
+            React.createElement('span', { className: 'badge' }, table.kind || 'TABLE'),
+            table.row_count_approx != null && React.createElement('span', {
+              className: 'badge', style: { background: '#e2e8f0' }
+            }, `${table.row_count_approx.toLocaleString()} rows`),
+            React.createElement('button', { className: 'modal-close', onClick: onClose }, '×'),
+          ),
+          React.createElement('div', { className: 'modal-body' },
+            table.sample_error && React.createElement('div', { className: 'modal-notice' },
+              `⚠ 抓例值失敗: ${table.sample_error}`),
+
+            React.createElement('div', { className: 'modal-section-label' }, `Writer DAGs (${writers.length})`),
+            React.createElement('div', null,
+              writers.length === 0
+                ? React.createElement('span', { style: { color: '#94a3b8', fontSize: 12 } }, '(未偵測到)')
+                : writers.map(w => React.createElement('span', {
+                    key: w, className: 'modal-lineage-tag',
+                    onClick: () => onSelectDag(w),
+                  }, w))
+            ),
+
+            React.createElement('div', { className: 'modal-section-label' }, `Reader DAGs (${readers.length})`),
+            React.createElement('div', null,
+              readers.length === 0
+                ? React.createElement('span', { style: { color: '#94a3b8', fontSize: 12 } }, '(未偵測到)')
+                : readers.map(r => React.createElement('span', {
+                    key: r, className: 'modal-lineage-tag',
+                    onClick: () => onSelectDag(r),
+                  }, r))
+            ),
+
+            table.dbt_model && React.createElement('div', null,
+              React.createElement('div', { className: 'modal-section-label' }, 'dbt model'),
+              React.createElement('div', { style: { fontSize: 12 } },
+                React.createElement('code', null, table.dbt_model.file),
+                ` · ${table.dbt_model.domain} / ${table.dbt_model.layer}`,
+              )
+            ),
+
+            React.createElement('div', { className: 'modal-section-label' }, `Columns (${cols.length})`),
+            React.createElement('table', { className: 'modal-columns' },
+              React.createElement('thead', null,
+                React.createElement('tr', null,
+                  React.createElement('th', null, '#'),
+                  React.createElement('th', null, 'name'),
+                  React.createElement('th', null, 'type'),
+                  React.createElement('th', null, 'nullable'),
+                  React.createElement('th', null, 'example 1'),
+                  React.createElement('th', null, 'example 2'),
+                  React.createElement('th', null, 'example 3'),
+                )
+              ),
+              React.createElement('tbody', null,
+                cols.map(c => React.createElement('tr', { key: c.name },
+                  React.createElement('td', null, c.position),
+                  React.createElement('td', { className: 'col-name' }, c.name),
+                  React.createElement('td', { className: 'col-type' }, c.type),
+                  React.createElement('td', { className: 'col-nullable' }, c.nullable ? '' : 'NOT NULL'),
+                  React.createElement('td', { className: 'col-example' },
+                    formatCell(examples[0]?.[c.name])),
+                  React.createElement('td', { className: 'col-example' },
+                    formatCell(examples[1]?.[c.name])),
+                  React.createElement('td', { className: 'col-example' },
+                    formatCell(examples[2]?.[c.name])),
+                ))
+              )
+            ),
+          )
         )
       );
+    }
+
+    function formatCell(v) {
+      if (v === null || v === undefined) return React.createElement('span', { style: { color: '#cbd5e1' } }, 'null');
+      if (typeof v === 'boolean') return String(v);
+      const s = String(v);
+      return s.length > 80 ? s.slice(0, 80) + '…' : s;
     }
 
     function Root() {
