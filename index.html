@@ -784,9 +784,9 @@
         data: { ...r, __kind: 'resource', __resourceId: r.id },
       }));
 
-      // DAG→DAG edges
+      // DAG→DAG edges (skip table edges — those are handled separately below)
       const edgeCounter = {};
-      const dagEdges = DATA.edges.map((e, i) => {
+      const dagEdges = DATA.edges.filter(e => e.kind !== 'table').map((e, i) => {
         const key = e.source + '->' + e.target;
         edgeCounter[key] = (edgeCounter[key] || 0) + 1;
         return {
