@@ -1517,8 +1517,10 @@
       // Table modal is a separate popup — only shown when a table node is clicked
       const [modalTableId, setModalTableId] = useState(null);
       const modalTable = modalTableId ? nodes.find(n => n.id === modalTableId)?.data : null;
+      const spaceHeldRef = React.useRef(false);
 
       const onNodeClick = useCallback((_, node) => {
+        if (spaceHeldRef.current) return;   // pan mode — suppress selection
         if (node.data?.__kind === 'table') {
           setModalTableId(node.id);
           setSelectedId(node.id);
@@ -1529,6 +1531,41 @@
 
       const onPaneClick = useCallback(() => {
         setSelectedId(null);
+      }, []);
+
+      // Global keyboard: ESC clears all focus; Space held → pan (no select)
+      useEffect(() => {
+        const onKeyDown = (e) => {
+          // ignore keys typed in the search input
+          const inField = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
+          if (e.key === 'Escape') {
+            if (inField) {
+              // let the input handle ESC (already closes suggestions in the search box)
+              return;
+            }
+            e.preventDefault();
+            setSelectedId(null);
+            setModalTableId(null);
+            setSearch('');
+            setSuggestOpen(false);
+          } else if (e.code === 'Space' && !inField) {
+            spaceHeldRef.current = true;
+            document.body.style.cursor = 'grab';
+          }
+        };
+        const onKeyUp = (e) => {
+          if (e.code === 'Space') {
+            spaceHeldRef.current = false;
+            document.body.style.cursor = '';
+          }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keyup', onKeyUp);
+        return () => {
+          window.removeEventListener('keydown', onKeyDown);
+          window.removeEventListener('keyup', onKeyUp);
+          document.body.style.cursor = '';
+        };
       }, []);
 
       const selectById = useCallback((id) => {
@@ -1634,6 +1671,7 @@
               minZoom: 0.2,
               maxZoom: 2,
               proOptions: { hideAttribution: true },
+              panActivationKeyCode: 'Space',   // hold Space to pan; node clicks suppressed while held
             },
               React.createElement(Background, { color: '#cbd5e1', gap: 20 }),
               React.createElement(Controls, { showInteractive: false }),
