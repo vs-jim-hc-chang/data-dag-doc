@@ -1385,39 +1385,82 @@
           return { up, down, schemaTables };
         }
 
-        // DAG selected — BFS only through DAG-DAG edges
+        // DAG selected — BFS through DAG-DAG deps AND through tables
+        // (table-mediated: DAG X writes table T, DAG Y reads T → Y is downstream of X)
         const dagEdges = base.edges.filter(e => e.data.__kind === 'dag');
+        const tblEdges = base.edges.filter(e => e.data.__kind === 'table');
+
+        // Upstream: BFS backward
+        const upVisited = new Set([selectedId]);
         let frontier = [selectedId];
         while (frontier.length) {
           const next = [];
           for (const id of frontier) {
-            dagEdges.filter(e => e.target === id && !up.has(e.source)).forEach(e => {
-              up.add(e.source);
-              next.push(e.source);
-            });
+            if (id.startsWith('tbl__')) {
+              // Table → find its writer DAGs
+              tblEdges.forEach(e => {
+                if (e.target === id && !upVisited.has(e.source)) {
+                  upVisited.add(e.source); up.add(e.source); next.push(e.source);
+                }
+              });
+            } else {
+              // DAG → follow DAG-DAG upstream + tables it reads
+              dagEdges.forEach(e => {
+                if (e.target === id && !upVisited.has(e.source)) {
+                  upVisited.add(e.source); up.add(e.source); next.push(e.source);
+                }
+              });
+              tblEdges.forEach(e => {
+                if (e.target === id && e.data.dep_type === 'reads') {
+                  const t = e.source;   // table this DAG reads
+                  if (!upVisited.has(t)) {
+                    upVisited.add(t); up.add(t); next.push(t);
+                  }
+                }
+              });
+            }
           }
           frontier = next;
         }
+
+        // Downstream: BFS forward
+        const downVisited = new Set([selectedId]);
         frontier = [selectedId];
         while (frontier.length) {
           const next = [];
           for (const id of frontier) {
-            dagEdges.filter(e => e.source === id && !down.has(e.target)).forEach(e => {
-              down.add(e.target);
-              next.push(e.target);
-            });
+            if (id.startsWith('tbl__')) {
+              // Table → find its reader DAGs
+              tblEdges.forEach(e => {
+                if (e.source === id && !downVisited.has(e.target)) {
+                  downVisited.add(e.target); down.add(e.target); next.push(e.target);
+                }
+              });
+            } else {
+              // DAG → follow DAG-DAG downstream + tables it writes
+              dagEdges.forEach(e => {
+                if (e.source === id && !downVisited.has(e.target)) {
+                  downVisited.add(e.target); down.add(e.target); next.push(e.target);
+                }
+              });
+              tblEdges.forEach(e => {
+                if (e.source === id && e.data.dep_type === 'writes') {
+                  const t = e.target;   // table this DAG writes
+                  if (!downVisited.has(t)) {
+                    downVisited.add(t); down.add(t); next.push(t);
+                  }
+                }
+              });
+            }
           }
           frontier = next;
         }
+
         // Direct 1-hop resources of the selected DAG
         base.edges.forEach(e => {
-          if (e.data.__kind === 'resource') {
-            if (e.target === selectedId) up.add(e.source);       // reads from resource
-            if (e.source === selectedId) down.add(e.target);     // writes to resource
-          } else if (e.data.__kind === 'table') {
-            if (e.source === selectedId) down.add(e.target);     // DAG writes table
-            if (e.target === selectedId) up.add(e.source);       // DAG reads table
-          }
+          if (e.data.__kind !== 'resource') return;
+          if (e.target === selectedId) up.add(e.source);       // reads from resource
+          if (e.source === selectedId) down.add(e.target);     // writes to resource
         });
         return { up, down, schemaTables };
       }, [selectedId, base.edges, base.nodes]);
@@ -1482,17 +1525,18 @@
                 else if (e.source === selectedId) downEdge = true;  // this table → DAG
               }
             } else {
-              // DAG selected
+              // DAG selected — transitive BFS through DAG deps + tables
               if (isResourceEdge) {
                 if (e.target === selectedId) upEdge = true;
                 else if (e.source === selectedId) downEdge = true;
-              } else if (isTableEdge) {
-                if (e.source === selectedId) downEdge = true;       // DAG writes to table
-                else if (e.target === selectedId) upEdge = true;    // DAG reads from table
               } else {
-                // DAG-DAG edge: BFS chain result
-                upEdge = related.up.has(e.source) && (related.up.has(e.target) || e.target === selectedId);
-                downEdge = related.down.has(e.target) && (related.down.has(e.source) || e.source === selectedId);
+                // For BOTH DAG-DAG and table edges: highlight if both endpoints are in the same lineage direction
+                const srcInUp = related.up.has(e.source) || e.source === selectedId;
+                const tgtInUp = related.up.has(e.target) || e.target === selectedId;
+                const srcInDown = related.down.has(e.source) || e.source === selectedId;
+                const tgtInDown = related.down.has(e.target) || e.target === selectedId;
+                if (srcInUp && tgtInUp) upEdge = true;
+                else if (srcInDown && tgtInDown) downEdge = true;
               }
             }
           }
