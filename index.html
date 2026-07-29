@@ -1478,7 +1478,8 @@
                 if (e.target === selectedId) upEdge = true;
                 else if (e.source === selectedId) downEdge = true;
               } else if (isTableEdge) {
-                // Hide DAG↔table edges when a DAG is selected (only shown via schema click)
+                if (e.source === selectedId) downEdge = true;       // DAG writes to table
+                else if (e.target === selectedId) upEdge = true;    // DAG reads from table
               } else {
                 // DAG-DAG edge: BFS chain result
                 upEdge = related.up.has(e.source) && (related.up.has(e.target) || e.target === selectedId);
