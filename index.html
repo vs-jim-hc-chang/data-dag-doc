@@ -174,6 +174,15 @@
       position: relative;
       min-width: 0;
     }
+    .graph-area.pan-mode,
+    .graph-area.pan-mode * {
+      cursor: grab !important;
+    }
+    .graph-area.pan-mode .react-flow__pane:active,
+    .graph-area.pan-mode:active,
+    .graph-area.pan-mode:active * {
+      cursor: grabbing !important;
+    }
     .detail-panel {
       width: 400px;
       background: white;
@@ -1518,6 +1527,7 @@
       // Table modal is a separate popup — only shown when a table node is clicked
       const [modalTableId, setModalTableId] = useState(null);
       const modalTable = modalTableId ? nodes.find(n => n.id === modalTableId)?.data : null;
+      const [panMode, setPanMode] = useState(false);
       const spaceHeldRef = React.useRef(false);
 
       const onNodeClick = useCallback((_, node) => {
@@ -1550,14 +1560,15 @@
             setSearch('');
             setSuggestOpen(false);
           } else if (e.code === 'Space' && !inField) {
+            e.preventDefault();       // stop page scroll
             spaceHeldRef.current = true;
-            document.body.style.cursor = 'grab';
+            setPanMode(true);
           }
         };
         const onKeyUp = (e) => {
           if (e.code === 'Space') {
             spaceHeldRef.current = false;
-            document.body.style.cursor = '';
+            setPanMode(false);
           }
         };
         window.addEventListener('keydown', onKeyDown);
@@ -1657,7 +1668,7 @@
           React.createElement('div', { className: 'stats' }, stats),
         ),
         React.createElement('div', { className: 'main' },
-          React.createElement('div', { className: 'graph-area' },
+          React.createElement('div', { className: 'graph-area' + (panMode ? ' pan-mode' : '') },
             React.createElement(ReactFlow, {
               nodes,
               edges,
