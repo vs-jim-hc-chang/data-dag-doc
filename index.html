@@ -405,9 +405,15 @@
       width: 100%;
       height: 100%;
       position: relative;
-      pointer-events: none;
     }
     .rf-schema-group.has-selected { border-color: #0ea5e9; background: rgba(219, 234, 254, 0.35); }
+    .rf-schema-group.self-selected {
+      border-color: #0ea5e9;
+      border-style: solid;
+      border-width: 2px;
+      background: rgba(219, 234, 254, 0.55);
+      box-shadow: 0 0 0 3px rgba(14,165,233,0.2);
+    }
     .rf-schema-title {
       position: absolute;
       top: 6px;
@@ -421,7 +427,9 @@
       padding: 2px 6px;
       border-radius: 3px;
       border: 1px solid #cbd5e1;
+      cursor: pointer;
     }
+    .rf-schema-title:hover { background: #e0f2fe; }
     .rf-schema-count { color: #94a3b8; font-weight: 400; }
 
     /* React Flow parent nodes need to render behind children */
@@ -734,8 +742,7 @@
           type: 'schemaGroup',
           position: { x: p.x, y: p.y },
           style: { width: p.w, height: p.h },
-          // draggable false; groups purely visual
-          selectable: false,
+          selectable: true,
           draggable: false,
         };
       });
@@ -938,7 +945,8 @@
 
     function SchemaGroupNode({ data }) {
       const cls = ['rf-schema-group'];
-      if (data.__hasSelected) cls.push('has-selected');
+      if (data.__selfSelected) cls.push('self-selected');
+      else if (data.__hasSelected) cls.push('has-selected');
       return React.createElement('div', { className: cls.join(' ') },
         React.createElement('div', { className: 'rf-schema-title' },
           data.schema,
@@ -1324,13 +1332,31 @@
       // - DAG selected: BFS chain via DAG edges only + direct 1-hop resources + direct tables
       // - Resource selected: only direct 1-hop DAGs (writers = upstream, readers = downstream)
       // - Table selected: only direct 1-hop DAG writers/readers
+      // - Schema selected: all tables in the schema + all their DAG writers (up) / readers (down)
       const related = useMemo(() => {
-        if (!selectedId) return { up: new Set(), down: new Set() };
+        if (!selectedId) return { up: new Set(), down: new Set(), schemaTables: new Set() };
 
         const isResource = selectedId.startsWith('res__');
         const isTable = selectedId.startsWith('tbl__');
+        const isSchema = selectedId.startsWith('schema__');
         const up = new Set();
         const down = new Set();
+        const schemaTables = new Set();
+
+        if (isSchema) {
+          // Collect all table ids belonging to this schema
+          const groupNode = base.nodes.find(n => n.id === selectedId);
+          if (groupNode) {
+            (groupNode.data.tables || []).forEach(tid => schemaTables.add(tid));
+          }
+          // Any table-edge with an endpoint inside this schema → other endpoint is up (writer) or down (reader)
+          base.edges.forEach(e => {
+            if (e.data.__kind !== 'table') return;
+            if (schemaTables.has(e.source)) down.add(e.target);   // table→DAG (reader)
+            if (schemaTables.has(e.target)) up.add(e.source);     // DAG→table (writer)
+          });
+          return { up, down, schemaTables };
+        }
 
         if (isResource) {
           base.edges.forEach(e => {
@@ -1338,7 +1364,7 @@
             if (e.target === selectedId) up.add(e.source);     // writer → resource
             if (e.source === selectedId) down.add(e.target);   // resource → reader
           });
-          return { up, down };
+          return { up, down, schemaTables };
         }
 
         if (isTable) {
@@ -1347,7 +1373,7 @@
             if (e.target === selectedId) up.add(e.source);     // DAG writer
             if (e.source === selectedId) down.add(e.target);   // DAG reader
           });
-          return { up, down };
+          return { up, down, schemaTables };
         }
 
         // DAG selected — BFS only through DAG-DAG edges
@@ -1384,18 +1410,18 @@
             if (e.target === selectedId) up.add(e.source);       // DAG reads table
           }
         });
-        return { up, down };
-      }, [selectedId, base.edges]);
+        return { up, down, schemaTables };
+      }, [selectedId, base.edges, base.nodes]);
 
       const nodes = useMemo(() => {
         return layouted.map(n => {
           const kind = n.data.__kind;
           if (kind === 'schema') {
-            // Schema groups: highlight border if any child is upstream/downstream/selected
-            const hasSelected = n.data.tables && n.data.tables.some(tid =>
+            const isSelfSelected = selectedId === n.id;
+            const hasSelected = isSelfSelected || (n.data.tables && n.data.tables.some(tid =>
               tid === selectedId || related.up.has(tid) || related.down.has(tid)
-            );
-            return { ...n, type: 'schemaGroup', data: { ...n.data, __hasSelected: hasSelected } };
+            ));
+            return { ...n, type: 'schemaGroup', data: { ...n.data, __hasSelected: hasSelected, __selfSelected: isSelfSelected } };
           }
           const isSel = selectedId === n.id;
           const isUp = related.up.has(n.id);
@@ -1422,6 +1448,7 @@
       const edges = useMemo(() => {
         const isSelectedResource = selectedId && selectedId.startsWith('res__');
         const isSelectedTable = selectedId && selectedId.startsWith('tbl__');
+        const isSelectedSchema = selectedId && selectedId.startsWith('schema__');
         return base.edges.map(e => {
           const isResourceEdge = e.data.__kind === 'resource';
           const isTableEdge = e.data.__kind === 'table';
@@ -1429,7 +1456,13 @@
           let downEdge = false;
 
           if (selectedId) {
-            if (isSelectedResource) {
+            if (isSelectedSchema) {
+              // Schema selected: show table edges whose endpoint is a table in this schema
+              if (isTableEdge) {
+                if (related.schemaTables && related.schemaTables.has(e.source)) downEdge = true;   // table → DAG (reader)
+                else if (related.schemaTables && related.schemaTables.has(e.target)) upEdge = true; // DAG → table (writer)
+              }
+            } else if (isSelectedResource) {
               if (isResourceEdge) {
                 if (e.target === selectedId) upEdge = true;
                 else if (e.source === selectedId) downEdge = true;
@@ -1487,7 +1520,6 @@
       const modalTable = modalTableId ? nodes.find(n => n.id === modalTableId)?.data : null;
 
       const onNodeClick = useCallback((_, node) => {
-        if (node.data?.__kind === 'schema') return;   // group is not selectable
         if (node.data?.__kind === 'table') {
           setModalTableId(node.id);
           setSelectedId(node.id);
